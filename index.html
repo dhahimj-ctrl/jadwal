@@ -2544,7 +2544,11 @@ function makeSolver(fresh){
     for(let round=0;round<5;round++)for(const[cid,sid]of D){const want=Math.min(dbl[cid+"|"+sid],Math.floor(W(SS[sid],cid)/2));if(pairCount(cid,sid)<want&&need[cid][sid]>=2)placePair(cid,sid,true)}
     pairsAfterPhase1=totalPairs-deficit();
     // المرحلة ٢: بقية الحصص
-    for(const[cid,sid]of missingList().sort((a,b)=>((load[asg[b[1]+"|"+b[0]]]||0)-(load[asg[a[1]+"|"+a[0]]]||0))||Math.random()-.5)){const x={sid,tid:""},k=bestSlot(cid,x);if(k)put(cid,k,x)}}
+    // الأضيق أولًا: نسبة حصص المعلم إلى الخانات المتاحة له بعد الاستثناء والحد الأقصى اليومي
+    const cap={};for(const t in load){const R=RT_[t]||[];let c=0;for(const d of days){let n=0;for(let p=0;p<d.count;p++)if(!R.some(r=>r.type=="exclude"&&r.slots.includes(d.i+"-"+p)))n++;
+      for(const r of R)if(r.type=="maxDay"&&onDayOf(r,d.i))n=Math.min(n,r.v);c+=n}cap[t]=Math.max(1,c)}
+    const tight=(cid,sid)=>{const t=asg[sid+"|"+cid];return t?(load[t]||0)/cap[t]:0};
+    for(const[cid,sid]of missingList().sort((a,b)=>(tight(b[0],b[1])-tight(a[0],a[1]))||Math.random()-.5)){const x={sid,tid:""},k=bestSlot(cid,x);if(k)put(cid,k,x)}}
   // وضع حصتين متتاليتين لمادة في فصل (في خانات فارغة مناسبة)
   function placePair(cid,sid,fromMissing){const x={sid,tid:""},opts=[];
     for(const d of days)for(let p=0;p+1<d.count;p++){const k1=d.i+"-"+p,k2=d.i+"-"+(p+1);if(C[cid][k1]||C[cid][k2]||subjOnDay(cid,sid,d.i))continue;opts.push([d.i,p,filledOnDay(cid,d.i)+Math.random()*3])}
@@ -2585,7 +2589,10 @@ function makeSolver(fresh){
     for(const[c2,y]of ev)if(y)placeChain(c2,y,2);
     const dl=score()-before;if(dl>0&&Math.random()>=Math.exp(-dl/Math.max(.02,temp*10)))rollback();else journal=null;return true}
   function step(){if(Math.random()<.5)shuffleMove();if(DB.length&&Math.random()<.4){pairMove();return score()}const L=missingList();if(MINR.length&&(!L.length||Math.random()<.35)){minMove();return score()}if(!L.length)return score();const[cid,sid]=L[Math.floor(Math.random()*L.length)],x={sid,tid:""},t=tOf(x,cid);
-    const[d,p]=slots[Math.floor(Math.random()*slots.length)],k=d+"-"+p;
+    // اختيار الخانة: عيّنة من الخانات، وتُفضَّل التي تُزيح أقل عدد من الحصص وتحقق شروط المعلم
+    let d,p,bc=1e9;for(let i=0;i<6;i++){const[dd,pp]=slots[Math.floor(Math.random()*slots.length)],kk=dd+"-"+pp;if(t&&!ruleOK2(t,dd,pp))continue;
+      const c=(C[cid][kk]?1:0)+(t&&tOcc[t]?.[kk]?1:0)+(t&&!ruleOK(t,dd,pp)?.5:0)+Math.random()*.6;if(c<bc){bc=c;d=dd;p=pp}}
+    if(d==null)return score();const k=d+"-"+p;
     if(t&&!ruleOK2(t,d,p))return score();
     if(LK(cid,k)||(t&&tOcc[t]?.[k]&&LK(tOcc[t][k],k)))return score();
     const before=score();journal=[];const ev=[];
