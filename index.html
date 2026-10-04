@@ -375,7 +375,7 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
 #tbl tr.rowhl>td{box-shadow:inset 0 0 0 999px rgba(255,196,0,.22);border-top:2px solid #d38b10!important;border-bottom:2px solid #d38b10!important}
 #tbl tr.rowhl>th,#tbl tr.rowhl>td.no{background:#ffd54f!important;color:#1d2733!important;border-top:2px solid #d38b10!important;border-bottom:2px solid #d38b10!important}
 @media print{#tbl tr.rowhl>td,#tbl tr.rowhl>th{box-shadow:none!important;background:inherit}}
-.tpage{width:733px;display:flex;flex-direction:column;gap:10px;background:#fff;color:#1d2733}
+.tpage{width:var(--tpw,733px);display:flex;flex-direction:column;gap:10px;background:#fff;color:#1d2733}
 @media print{.tpage{page-break-after:always;break-after:page}.tpage:last-child{page-break-after:auto;break-after:auto}}
 .tblock{position:relative;border:1px solid #9aa8b5;border-radius:6px;padding:8px 10px;break-inside:avoid;page-break-inside:avoid}
 .tblock .dm{font-style:normal;border:1.5px solid #b23b3b;color:#b23b3b;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;margin-inline-end:auto}
@@ -438,9 +438,9 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
   <div class="classbar">
     <div class="seg" role="tablist"><button id="vGen" role="tab">الجدول العام</button><button id="vCls" role="tab">جدول الفصل</button><button id="vTch" role="tab">جدول المعلم</button></div>
     <button id="bFit" hidden></button>
-    <span id="clsPick"><label for="cSel">الفصل:</label><select id="cSel"></select></span>
+    <span id="clsPick"><label for="cSel">الفصل:</label><select id="cSel"></select></span><button id="shareC" hidden>📤 إرسال جداول الفصول</button>
     <span id="tchPick" hidden><button id="tPrev" aria-label="المعلم السابق">▶</button><label for="tSel">المعلم:</label><select id="tSel"></select><button id="tNext" aria-label="المعلم التالي">◀</button></span>
-    <button id="printAllT" hidden>🖨 طباعة جداول كل المعلمين</button>
+    <button id="printAllT" hidden>🖨 طباعة جداول كل المعلمين</button><button id="shareT" hidden>📤 مشاركة الجدول كصورة</button><button id="shareAllT" hidden>📤 إرسال الجداول للمعلمين</button>
     <div class="status" id="status"></div>
   </div>
   <div class="hlnote" id="hlNote" hidden></div>
@@ -637,7 +637,7 @@ function genSheet(sub){return `<div class="sheet pa">${st.approved?"":`<div clas
 function printHTML(html,portrait){let framed=false;try{framed=window.self!==window.top}catch(_){framed=true}
   if(framed){toast("الطباعة غير متاحة داخل صفحة الرابط. حمّل الملف وافتحه في Chrome ثم اطبع");return}
   $("allT").innerHTML=html;document.body.classList.add("pall");
-  let ps=null;if(portrait){ps=document.createElement("style");ps.id="pgPortrait";ps.textContent="@page{size:A4 portrait;margin:8mm}";document.head.appendChild(ps)}
+  setPage(portrait);const ps={remove:()=>{printPortrait=false}};
   const done=()=>{document.body.classList.remove("pall");$("allT").innerHTML="";ps?.remove();window.removeEventListener("afterprint",done)};
   window.addEventListener("afterprint",done);fitPrint();window.print();setTimeout(()=>{if(!matchMedia("print").matches)done()},1500)}
 function teacherSheets(ids){return (ids||st.teachers.map(t=>t.id)).map(id=>teacher(id)).filter(Boolean).map(t=>`<div class="sheet pa">${st.approved?"":`<div class="draftmark">مسودة — غير معتمد</div>`}
@@ -679,16 +679,22 @@ function printChooser(kind){
   const isGen=st.view!="class"&&st.view!="teacher",curName=isGen?"الجدول العام":st.view=="teacher"?"جدول المعلم المعروض":"جدول الفصل المعروض";
   const draw=w=>{w.querySelector(".box").innerHTML=`<h3>طباعة</h3>
     <div class="seg tpk">${[["cur",curName],["t","جداول كل المعلمين"],["c","جداول كل الفصول"]].map(([k,l])=>`<button data-k="${k}" class="${k==kind?"on":""}">${l}</button>`).join("")}</div>
-    ${kind=="cur"?`<p class="note">${isGen?"يُطبع الجدول العام في ورقة أفقية واحدة مع التوقيعات.":"يُطبع الجدول المعروض حاليًا."}</p>`:`
-    <p class="note">ورق A4 عمودي. عدد الجداول في كل ورقة:</p>
+    <p class="note">مقاس الورق:</p><div class="seg tpn">${["A4","A3"].map(x=>`<button data-pp="${x}" class="${(st.paper||"A4")==x?"on":""}">${x}</button>`).join("")}</div>
+    ${kind=="cur"?`<p class="note">${isGen?`يُطبع الجدول العام في ورقة ${st.paper||"A4"} أفقية واحدة مع التوقيعات، ويملأ عرض الورقة. اختر المقاس نفسه في نافذة الطباعة.`:"يُطبع الجدول المعروض حاليًا."}</p>`:`
+    <p class="note">ورق ${st.paper||"A4"} عمودي. عدد الجداول في كل ورقة:</p>
     <div class="seg tpn">${[1,2,3,4,5].map(i=>`<button data-n="${i}" class="${i==n?"on":""}">${i}</button>`).join("")}</div>
     <p class="note">عدد الأوراق: <b>${Math.ceil(cnt()/n)}</b> لـ ${cnt()} ${kind=="t"?"معلمًا":"فصلًا"}.${n>=2&&kind=="t"?" تبقى أسماء المواد داخل الجداول، وتُحذف القائمة أسفل كل جدول.":""}</p>`}
     <div class="actions"><button class="primary" id="tpGo">طباعة</button><button data-close>إلغاء</button></div>`};
-  const w=modal("",(e,w)=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.n){n=+b.dataset.n;draw(w);return}if(b.dataset.k){kind=b.dataset.k;draw(w);return}
-    if(b.id=="tpGo"){w.remove();if(kind=="cur"){fitPrint();window.print();return}
+  const w=modal("",(e,w)=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.n){n=+b.dataset.n;draw(w);return}if(b.dataset.k){kind=b.dataset.k;draw(w);return}if(b.dataset.pp){st.paper=b.dataset.pp;save();draw(w);return}
+    if(b.id=="tpGo"){w.remove();if(kind=="cur"){printPortrait=false;fitPrint();window.print();return}
       if(!cnt()){toast(kind=="t"?"لا يوجد معلمون":"لا توجد فصول");return}st.tPer=n;save();printHTML(printPages(kind,null,n),true)}});draw(w)}
 /* ملاءمة الطباعة: تصغير كل ورقة (الجدول العام خاصة) لتُطبع في صفحة واحدة */
-function fitPrint(){const PW=1047,PH=718;document.body.classList.add("pm");
+// مقاس الورق: A4 أو A3 (أفقي للجدول العام، عمودي لأوراق الجداول المتعددة)
+const PAPER={A4:{land:[1047,718],port:[733,1062]},A3:{land:[1512,1047],port:[1062,1527]}};
+let printPortrait=false;
+function setPage(portrait){printPortrait=!!portrait;const P=st.paper=="A3"?"A3":"A4";let el=$("pgSize");if(!el){el=document.createElement("style");el.id="pgSize";document.head.appendChild(el)}
+  el.textContent=`@page{size:${P} ${portrait?"portrait":"landscape"};margin:${portrait?8:10}mm}`;document.documentElement.style.setProperty("--tpw",PAPER[P].port[0]+"px")}
+function fitPrint(){const P=PAPER[st.paper=="A3"?"A3":"A4"],[PW,PH]=P.land;if(!printPortrait)setPage(false);document.body.classList.add("pm");
   const sheets=document.body.classList.contains("pall")?[...document.querySelectorAll("#allT .sheet")]:[document.querySelector(".stage .sheet")];
   document.querySelectorAll(".sheet.fitone").forEach(x=>{x.classList.remove("fitone");x.style.removeProperty("--pz");x.style.removeProperty("--rh");x.style.removeProperty("width")});
   const H=PH*0.95;
@@ -701,7 +707,7 @@ function fitPrint(){const PW=1047,PH=718;document.body.classList.add("pm");
     z=Math.min(1,H/h,PW/sh.scrollWidth);sh.style.setProperty("--pz",z.toFixed(4));
     if(z>=1)sh.style.setProperty("width",PW+"px","important")}
   // جداول المعلمين في الورقة العمودية: تصغير كل جدول ليتسع في حصته من الورقة
-  if(document.body.classList.contains("pall"))document.querySelectorAll("#allT .tpage").forEach(pg=>{const n=+(pg.className.match(/tp(\d)/)||[0,1])[1],avail=(1060*0.97-(n-1)*10)/n;
+  if(document.body.classList.contains("pall"))document.querySelectorAll("#allT .tpage").forEach(pg=>{const n=+(pg.className.match(/tp(\d)/)||[0,1])[1],avail=(P.port[1]*0.97-(n-1)*10)/n;
     pg.querySelectorAll(".tblock").forEach(b=>{b.style.removeProperty("zoom");const h=b.scrollHeight;if(h>avail)b.style.zoom=(avail/h).toFixed(4)})});
   document.body.classList.remove("pm")}
 window.addEventListener("beforeprint",fitPrint);
@@ -796,7 +802,7 @@ function render(){
   const TV=st.view=="teacher",GEN=st.view!="class"&&!TV,EDIT=st.view!="class";
   if(TV&&!teacher(st.curT))st.curT=st.teachers[0]?.id||"";
   $("vGen").classList.toggle("on",GEN);$("vCls").classList.toggle("on",st.view=="class");$("vTch").classList.toggle("on",TV);$("bTch").classList.toggle("on",TV);
-  $("clsPick").hidden=st.view!="class";$("tchPick").hidden=!TV;$("printAllT").hidden=!TV;
+  $("clsPick").hidden=st.view!="class";$("shareC").hidden=st.view!="class";$("tchPick").hidden=!TV;$("printAllT").hidden=!TV;$("shareT").hidden=!TV;$("shareAllT").hidden=!TV;
   $("tSel").innerHTML=st.teachers.map(t=>`<option value="${t.id}" ${t.id==st.curT?"selected":""}>${esc(t.n)}</option>`).join("")||"<option>لا يوجد معلمون</option>";
   const TT=TV?teacher(st.curT):null;
   $("vTitle").textContent=GEN?"الجدول العام":TV?"جدول المعلم":"جدول الفصل";
@@ -1616,6 +1622,95 @@ function changePassword(){const u=CLOUD.user;if(!u){toast("سجّل الدخول
     const btn=e.target;btn.disabled=true;m("جارٍ الحفظ…");
     try{await withTO(u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,a)));await withTO(u.updatePassword(b));w.remove();toast("تم تغيير كلمة المرور")}
     catch(err){m(err?.code=="auth/invalid-credential"||err?.code=="auth/wrong-password"?"كلمة المرور الحالية غير صحيحة":fbErr(err),1);btn.disabled=false}})}
+/* ===== مشاركة الجداول كصور (واتساب وغيره) ===== */
+// يرسم جدولًا أو عدة جداول (معلمين أو فصول) في صورة واحدة
+async function tablesPNG(list){if(!list.length)return null;
+  try{await document.fonts?.ready}catch(_){}
+  const days=activeDays(),max=Math.max(1,...days.map(d=>d.count)),SC=list.length>2?1.5:2;
+  const W=1400,pad=40,dayW=150,colW=(W-2*pad-dayW)/max,titleH=140,headH=56,rowH=list.length>1?100:118,gap=46,schoolH=80,footH=100;
+  const blockH=titleH+headH+days.length*rowH,H=schoolH+list.length*blockH+(list.length-1)*gap+footH;
+  const cv=document.createElement("canvas");cv.width=W*SC;cv.height=H*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.direction="rtl";
+  const F=(w,s,fam)=>`${w} ${s}px ${fam||'"Tajawal",system-ui,sans-serif'}`,DF='"Reem Kufi","Tajawal",system-ui,sans-serif';
+  g.fillStyle="#ffffff";g.fillRect(0,0,W,H);
+  const text=(s,x,y,font,color,align="center")=>{g.font=font;g.fillStyle=color;g.textAlign=align;g.textBaseline="middle";g.fillText(s,x,y)};
+  const fit=(s,maxW,size,w,fam)=>{let z=size;g.font=F(w,z,fam);while(z>11&&g.measureText(s).width>maxW){z--;g.font=F(w,z,fam)}return z};
+  const wrap=(s,maxW,font)=>{g.font=font;const ws=String(s).split(" "),L=[];let cur="";for(const w of ws){const n=cur?cur+" "+w:w;if(g.measureText(n).width>maxW&&cur){L.push(cur);cur=w}else cur=n}if(cur)L.push(cur);return L};
+  text(st.school||"",W/2,44,F(700,fit(st.school||"",W-2*pad,38,700,DF),DF),"#1f6f5c");
+  const xR=W-pad;
+  list.forEach((it,bi)=>{const y0=schoolH+bi*(blockH+gap);
+    if(bi){g.strokeStyle="#9aa8b5";g.setLineDash([8,6]);g.lineWidth=1.5;g.beginPath();g.moveTo(pad,y0-gap/2);g.lineTo(W-pad,y0-gap/2);g.stroke();g.setLineDash([])}
+    text(it.title,W/2,y0+40,F(700,fit(it.title,W-2*pad,28,700)),"#1d2733");
+    text(it.sub+(locked()?"":"   —   مسودة"),W/2,y0+82,F(500,20),"#3f4b57");
+    g.strokeStyle="#1f6f5c";g.lineWidth=3;g.beginPath();g.moveTo(pad,y0+titleH-12);g.lineTo(W-pad,y0+titleH-12);g.stroke();
+    const top=y0+titleH;
+    g.fillStyle="#1f6f5c";g.fillRect(pad,top,W-2*pad,headH);
+    text("اليوم",xR-dayW/2,top+headH/2,F(700,20),"#ffffff");
+    for(let p=0;p<max;p++){const cx=xR-dayW-p*colW-colW/2;text("الحصة "+ORD[p],cx,top+headH/2,F(700,fit("الحصة "+ORD[p],colW-10,19,700)),"#ffffff")}
+    days.forEach((d,ri)=>{const y=top+headH+ri*rowH;
+      g.fillStyle="#e8efec";g.fillRect(xR-dayW,y,dayW,rowH);text(ALL_DAYS[d.i],xR-dayW/2,y+rowH/2,F(700,22),"#1d2733");
+      for(let p=0;p<max;p++){const x=xR-dayW-(p+1)*colW;
+        if(p>=d.count){g.fillStyle="#e9edf0";g.fillRect(x,y,colW,rowH);continue}
+        const c=it.cell(d.i,p);g.fillStyle=c?.fill||"#ffffff";g.fillRect(x,y,colW,rowH);if(!c)continue;
+        const sz=colW<150?17:20,all=[];
+        for(const[t2,main]of c.lines){const f=main?F(700,sz):F(500,sz-4);for(const l of wrap(t2,colW-14,f).slice(0,2))all.push([l,f,main?"#1d2733":"#3f4b57",main?sz+4:sz])}
+        const tot=all.reduce((a,v)=>a+v[3],0);let yy=y+rowH/2-tot/2;for(const[l,f,col,h]of all){text(l,x+colW/2,yy+h/2,f,col);yy+=h}}});
+    g.strokeStyle="#5d6b7a";g.lineWidth=1.5;const bot=top+headH+days.length*rowH;g.strokeRect(pad,top,W-2*pad,bot-top);
+    for(let i=0;i<=days.length;i++){const y=top+headH+i*rowH;g.beginPath();g.moveTo(pad,y);g.lineTo(W-pad,y);g.stroke()}
+    for(let p=0;p<=max;p++){const x=xR-dayW-p*colW;g.beginPath();g.moveTo(x,top);g.lineTo(x,bot);g.stroke()}});
+  const fy=H-footH/2;text(`وكيل الشؤون التعليمية: ${st.deputy||"—"}`,W-pad,fy,F(700,19),"#1f6f5c","right");text(`مدير المدرسة: ${st.principal||"—"}`,pad,fy,F(700,19),"#1f6f5c","left");
+  return await new Promise(r=>cv.toBlob(r,"image/png"))}
+// بيانات جدول معلم أو فصل للرسم
+function imgItem(kind,id){
+  if(kind=="t"){const t=teacher(id),S=teacherSlots(id),ld=teacherLoad(id),wn=waitCount(id);
+    return{name:t.n,title:`جدول المعلم: ${t.n}`,sub:`النصاب: ${ld} حصة${wn?`   —   الانتظار: ${wn}`:""}`,
+      cell:(d,p)=>{const k=d+"-"+p,L=S[k],wr=waitRank(id,k);if(L){const s=subj(L[0].x.sid);return{fill:s?.c,lines:[[s?.n||"",1],[L[0].c.n,0]]}}return wr?{fill:"#eef0f4",lines:[["انتظار "+wr,1]]}:null}}}
+  const c=cls(id),C=st.cells[id]||{};
+  return{name:c.n,title:`جدول الفصل: ${c.n}`,sub:`عدد الحصص: ${Object.keys(C).filter(okSlot).length}`,
+    cell:(d,p)=>{const k=d+"-"+p,L=[C[k],...extrasAt(id,k)].filter(Boolean);if(!L.length)return null;const lines=[];
+      for(const e of L.slice(0,2)){const tt=teacher(cellTeacher(e,id));lines.push([subj(e.sid)?.n||"",1]);if(tt)lines.push([L.length>1?firstName(tt.n):tt.n,0])}
+      return{fill:subj(L[0].sid)?.c,lines}}}}
+const teacherPNG=tid=>tablesPNG([imgItem("t",tid)]);
+// مشاركة صورة أو عدة صور معًا، أو حفظها عند عدم دعم المشاركة
+async function shareFiles(files,title){
+  if(navigator.canShare&&navigator.canShare({files})){try{await navigator.share({files,title,text:`${title} — ${st.school||""}`});return true}catch(e){if(e?.name=="AbortError")return false}}
+  for(const f of files){const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+  toast(files.length>1?`حُفظت ${files.length} صور في التنزيلات. أرسلها من واتساب`:"حُفظت الصورة في التنزيلات. أرسلها من واتساب");return true}
+const pngName=s=>(s+".png").replace(/[\\/:*?"<>|]/g,"-");
+async function shareTeacher(tid){const t=teacher(tid);if(!t)return false;let blob;
+  try{blob=await teacherPNG(tid)}catch(e){toast("تعذر إنشاء الصورة");return false}if(!blob){toast("تعذر إنشاء الصورة");return false}
+  return shareFiles([new File([blob],pngName("جدول "+t.n),{type:"image/png"})],"جدول "+t.n)}
+// إرسال جداول الفصول: جدول واحد أو عدة جداول في صورة واحدة
+function shareClasses(){if(!st.classes.length){toast("لا توجد فصول");return}
+  const sel=new Set(st.view=="class"&&st.cur?[st.cur]:st.classes.map(c=>c.id));let n=st.cPer||1;
+  const draw=w=>{const k=st.classes.filter(c=>sel.has(c.id)).length,imgs=Math.ceil(k/n);w.querySelector(".box").innerHTML=`<h3>إرسال جداول الفصول</h3>
+    <p class="note">اختر الفصول، وعدد الجداول في كل صورة، ثم اضغط «مشاركة» واختر واتساب والمعلم الذي تريد.</p>
+    <div class="actions"><button data-all="1">تحديد الكل</button><button data-all="0">إلغاء التحديد</button></div>
+    <div class="checks" style="flex-direction:column;align-items:flex-start;max-height:40vh;overflow:auto">${st.classes.map(c=>`<label><input type="checkbox" data-c="${c.id}" ${sel.has(c.id)?"checked":""}> ${esc(c.n)}</label>`).join("")}</div>
+    <p class="note">عدد الجداول في الصورة الواحدة:</p><div class="seg tpn">${[1,2,3,4,5].map(i=>`<button data-n="${i}" class="${i==n?"on":""}">${i}</button>`).join("")}</div>
+    <p class="note">المحدد: <b>${k}</b> فصل — عدد الصور: <b>${imgs}</b></p>
+    <div class="actions"><button class="primary" id="scGo" ${k?"":"disabled"}>مشاركة</button><button data-close>إغلاق</button></div>`};
+  const w=modal("",async(e,w)=>{const t=e.target;
+    if(t.dataset.c){t.checked?sel.add(t.dataset.c):sel.delete(t.dataset.c);draw(w);return}
+    const b=t.closest("button");if(!b)return;
+    if(b.dataset.all!=null){sel.clear();if(b.dataset.all=="1")st.classes.forEach(c=>sel.add(c.id));draw(w);return}
+    if(b.dataset.n){n=+b.dataset.n;st.cPer=n;save();draw(w);return}
+    if(b.id=="scGo"){b.disabled=true;b.textContent="جارٍ تجهيز الصور…";
+      try{const ids=st.classes.filter(c=>sel.has(c.id)).map(c=>c.id),files=[];
+        for(let i=0;i<ids.length;i+=n){const grp=ids.slice(i,i+n).map(id=>imgItem("c",id)),blob=await tablesPNG(grp);
+          files.push(new File([blob],pngName(grp.length>1?`جداول الفصول ${i+1}-${i+grp.length}`:"جدول "+grp[0].name),{type:"image/png"}))}
+        await shareFiles(files,files.length>1||n>1?"جداول الفصول":"جدول الفصل")}catch(err){toast("تعذر إنشاء الصور")}
+      draw(w)}});draw(w)}
+// قائمة إرسال جداول المعلمين واحدًا بعد الآخر
+let SENT={};
+function shareAllTeachers(){if(!st.teachers.length){toast("لا يوجد معلمون");return}
+  const draw=w=>{const n=st.teachers.filter(t=>SENT[t.id]).length;w.querySelector(".box").innerHTML=`<h3>إرسال الجداول للمعلمين</h3>
+    <p class="note">اضغط «مشاركة» بجانب المعلم، ثم اختر واتساب ومحادثته. تُعلَّم الجداول المرسلة بعلامة ✓. (${n} من ${st.teachers.length})</p>
+    <div class="slist">${st.teachers.map(t=>`<div class="crow" style="grid-template-columns:1fr auto!important;align-items:center"><span>${SENT[t.id]?"✓ ":""}<b>${esc(t.n)}</b>${t.m?` <small dir="ltr" style="color:var(--muted)">${esc(t.m)}</small>`:""}</span><button class="${SENT[t.id]?"":"primary"}" data-sh="${t.id}">${SENT[t.id]?"إعادة":"مشاركة"}</button></div>`).join("")}</div>
+    <div class="actions"><button id="shCls">📤 إرسال جداول الفصول</button><button id="shReset">مسح العلامات</button><button data-close>إغلاق</button></div>`};
+  const w=modal("",async(e,w)=>{const b=e.target.closest("button");if(!b)return;
+    if(b.id=="shReset"){SENT={};draw(w);return}
+    if(b.id=="shCls"){w.remove();shareClasses();return}
+    if(b.dataset.sh){b.disabled=true;b.textContent="جارٍ التجهيز…";const ok=await shareTeacher(b.dataset.sh);if(ok)SENT[b.dataset.sh]=1;draw(w)}});draw(w)}
 
 /* ===== بوابة الدخول ===== */
 let gateMode="in";
@@ -2187,6 +2282,9 @@ $("tSel").onchange=e=>{st.curT=e.target.value;if(genSwap)genSetSrc(null);save();
 const stepT=d=>{const i=st.teachers.findIndex(t=>t.id==st.curT),n=st.teachers.length;if(!n)return;st.curT=st.teachers[(i+d+n)%n].id;if(genSwap)genSetSrc(null);save();render()};
 $("tPrev").onclick=()=>stepT(-1);$("tNext").onclick=()=>stepT(1);
 $("printAllT").onclick=printAllTeachers;
+$("shareT").onclick=async e=>{const b=e.currentTarget;b.disabled=true;await shareTeacher(st.curT);b.disabled=false};
+$("shareAllT").onclick=shareAllTeachers;
+$("shareC").onclick=shareClasses;
 $("vCls").onclick=()=>{st.view="class";if(genSwap){genSwap=false;genSrc=null;$("swapbar").hidden=true;$("bSwap").classList.remove("on")}save();render()};
 /* ===== التعديل المباشر على الجدول العام ===== */
 let genSwap=false,genSrc=null,genMap=null;
@@ -2517,15 +2615,16 @@ function runSmartFill(fresh){
   document.querySelectorAll(".dlg").forEach(d=>d.remove());
   snap(fresh?"إعادة التوزيع الكامل":"التوزيع الذكي");resolveClashes(true,true);
   const S=makeSolver(fresh);S.greedy();
-  const start=S.missingCount(),t0=Date.now(),LIMIT=12000;let stop=false,tries=0,best=S.score(),bestMiss=start,bestDef=S.deficit(),bestMin=S.minDef();
+  const start=S.missingCount(),t0=Date.now(),LIMIT=30000;let stop=false,tries=0,lastImp=Date.now(),best=S.score(),bestMiss=start,bestDef=S.deficit(),bestMin=S.minDef();
   const w=modal(`<h3>جارٍ التوزيع…</h3><p class="note" id="sfMsg"></p><div class="actions"><button id="sfStop">إيقاف وحفظ النتيجة</button></div>`,(e)=>{if(e.target.id=="sfStop")stop=true});
-  const upd=m=>{const el=$("sfMsg");if(el)el.innerHTML=`${S.totalPairs?`المرحلة ١ — الحصص المزدوجة: وُضع <b>${S.phase1()}</b> من ${S.totalPairs}، والآن <b>${S.totalPairs-bestDef}</b> من ${S.totalPairs}<br>المرحلة ٢ — بقية الحصص: `:""}حصص غير مدرجة: <b>${m}</b> (بعد التوزيع الأولي ${start})${S.hasMin?`<br>نقص الحد الأدنى اليومي للمعلمين: <b>${bestMin}</b> حصة`:""}<br>عدد المحاولات: ${tries.toLocaleString("ar-SA")} — الوقت: ${Math.round((Date.now()-t0)/1000)} ث`};
+  const upd=m=>{const el=$("sfMsg");if(el)el.innerHTML=`${S.totalPairs?`المرحلة ١ — الحصص المزدوجة: وُضع <b>${S.phase1()}</b> من ${S.totalPairs}، والآن <b>${S.totalPairs-bestDef}</b> من ${S.totalPairs}<br>المرحلة ٢ — بقية الحصص: `:""}حصص غير مدرجة: <b>${m}</b> (بعد التوزيع الأولي ${start})${S.hasMin?`<br>نقص الحد الأدنى اليومي للمعلمين: <b>${bestMin}</b> حصة`:""}<br>عدد المحاولات: ${tries.toLocaleString("ar-SA")} — الوقت: ${Math.round((Date.now()-t0)/1000)} من ${LIMIT/1000} ث<br><small>يتوقف قبل ذلك إذا أُدرجت كل الحصص، ويُعتمد في النهاية أفضل جدول وصل إليه.</small>`};
   upd(start);
   let bestSnap=S.snapshot();
   (function chunk(){const e=Date.now();let m=S.score();
-    while(m>0&&Date.now()-e<45){S.setTemp(.9*(1-(Date.now()-t0)/LIMIT)+.03);m=S.step();tries++;if(m<best){best=m;bestSnap=S.snapshot();bestMiss=S.missingCount();bestDef=S.deficit();bestMin=S.minDef()}}
+    while(m>0&&Date.now()-e<45){S.setTemp(.9*(1-(Date.now()-t0)/LIMIT)+.03);m=S.step();tries++;if(m<best){best=m;lastImp=Date.now();bestSnap=S.snapshot();bestMiss=S.missingCount();bestDef=S.deficit();bestMin=S.minDef()}}
     upd(bestMiss);
-    if(m>0&&!stop&&Date.now()-t0<LIMIT){setTimeout(chunk,0);return}
+    const done=bestMiss==0&&(best==0||Date.now()-lastImp>4000);
+    if(m>0&&!stop&&!done&&Date.now()-t0<LIMIT){setTimeout(chunk,0);return}
     if(m>best)S.restore(bestSnap);m=bestMiss;
     resolveClashes(true);save();w.remove();render();
     toast(m?`انتهى التوزيع بعد ${tries.toLocaleString("ar-SA")} محاولة، وبقيت ${m} حصة غير مدرجة (كانت ${start}). يمكنك تكرار «توزيع تلقائي» لمحاولات إضافية`:`وُزّعت جميع الحصص بنجاح بعد ${tries.toLocaleString("ar-SA")} محاولة`+(bestDef?`، وبقيت ${bestDef} حصة مزدوجة لم تتحقق (تظهر في الشروط)`:"")+(bestMin?`. لم يتحقق الحد الأدنى اليومي لبعض المعلمين بنقص ${bestMin} حصة (تظهر في الشروط)`:""),true);
