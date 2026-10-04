@@ -1214,7 +1214,6 @@ $("bArch").onclick=()=>{
      ${st.archive.map((a,i)=>card(`${i+1}. <input class="arren" data-ren value="${esc(a.name)}" aria-label="اسم النسخة">`,a.data,` data-aid="${a.id}"`,a.at)+`
        <div class="actions"><button data-view>عرض الجدول العام وجداول المعلمين</button></div><div class="actions"><button class="primary" data-restore>استعادة</button><button data-rep>حفظ الحالية مكانها</button><button class="del" data-del-a>حذف</button></div></div>`).join("")||"<p class='note'>لا توجد نسخ مؤرشفة بعد.</p>"}
      <div class="actions"><button data-close>إغلاق</button></div>`;
-    box.querySelectorAll("[data-del-a]").forEach(b=>{b.dataset.delA="";b.removeAttribute("data-del-a")});
   }
   box.addEventListener("change",e=>{if(e.target.dataset.ren==null)return;const a=st.archive.find(x=>x.id==e.target.closest("[data-aid]").dataset.aid);const v=cleanName(e.target.value);if(v){a.name=v;save();toast("أُعيدت تسمية النسخة")}else e.target.value=a.name});
   draw();
