@@ -325,7 +325,7 @@ td.menued{outline:3px solid #1f6f5c;outline-offset:-3px}
 td.src{outline:4px solid #1f6f5c;outline-offset:-4px;filter:brightness(.93)}
 td.sw-ok{box-shadow:inset 0 0 0 3px #2e8b57}
 td.sw-warn{box-shadow:inset 0 0 0 3px #d38b10}
-td.sw-bad{opacity:.4;cursor:not-allowed}
+td.sw-bad{opacity:.55;box-shadow:inset 0 0 0 3px #b9c2ca}
 td.drop{outline:3px dashed #1f6f5c;outline-offset:-3px}
 @media print{
   body{background:#fff}
@@ -446,7 +446,7 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
   <div class="hlnote" id="hlNote" hidden></div>
   <div class="swapbar" id="swapbar" hidden>
     <span id="swapMsg"></span>
-    <span class="legend"><i class="lg ok"></i>تبديل مناسب <i class="lg warn"></i>مع تنبيه <i class="lg bad"></i>غير ممكن <i class="lg hlg"></i>حصة فارغة في جدول الفصل</span>
+    <span class="legend"><i class="lg ok"></i>تبديل مناسب <i class="lg warn"></i>مع تنبيه <i class="lg bad"></i>المعلم مشغول (اضغط لنقل متسلسل) <i class="lg hlg"></i>حصة فارغة في جدول الفصل</span>
     <button id="swapOff">إنهاء التبديل</button>
   </div>
   <div class="stage" id="stage">
@@ -1976,11 +1976,17 @@ function openSwap(k1,k2){
   if(cells()[k1]?.lock||cells()[k2]?.lock){toast(LOCKMSG);return}
   const r=swapCheck(k1,k2),a=cells()[k1],b=cells()[k2];
   if(!a&&!b)return;
+  // عند تعارض المعلم: البحث عن نقل متسلسل بين عدة معلمين يحقق النقل المطلوب
+  const sols=r.hard.length?(a?chainSolve(st.cur,a,{k:k1},k2,5):chainSolve(st.cur,b,{k:k2},k1,5)):[];
   modal(`<h3>${a&&b?"تبديل حصتين":"نقل حصة"}</h3>
    <div class="confirm"><h4>التغييرات</h4><ul>${r.moves.map(m=>`<li>${esc(m)}</li>`).join("")}${r.hard.map(m=>`<li class="w" style="color:var(--danger)">غير ممكن: ${esc(m)}</li>`).join("")}${r.soft.map(m=>`<li class="w">تنبيه: ${esc(m)}</li>`).join("")}</ul></div>
-   ${r.hard.length?`<p class="note warn">لا يمكن هذا التبديل لأن المعلم لديه حصة في فصل آخر في الوقت نفسه.</p>`:""}
+   ${r.hard.length?(sols.length?`<p class="note">التبديل المباشر غير ممكن لأن المعلم لديه حصة في فصل آخر في الوقت نفسه، لكن يمكن تحقيقه بنقل متسلسل بين عدة معلمين:</p><div class="ogroup">${chainRows(sols,"swX")}</div>`
+     :`<p class="note warn">لا يمكن هذا التبديل لأن المعلم لديه حصة في فصل آخر في الوقت نفسه، ولم يُعثر على نقل متسلسل مناسب (حتى 5 نقلات).</p>`):""}
    <div class="actions">${r.hard.length?"":`<button class="primary" id="doSwap">${r.soft.length?"تأكيد رغم التنبيه":"تأكيد التبديل"}</button>`}<button data-close>رجوع</button></div>`,
-  (e,w)=>{if(e.target.id!="doSwap")return;const C=cells();
+  (e,w)=>{const cp=e.target.dataset.cprev,after=()=>{if(st.view=="class")setSwap(true);else genSetSrc(null)};
+    if(cp!=null){chainPreview(sols[cp],()=>{w.remove();chainGo(sols[cp]);after()});return}
+    if(e.target.id?.startsWith("swX")){w.remove();chainGo(sols[+e.target.id.slice(3)]);after();return}
+    if(e.target.id!="doSwap")return;const C=cells();
     snap(`${a&&b?"تبديل":"نقل"} ${slotName(k1)} و${slotName(k2)}`);
     delete C[k1];delete C[k2];if(b)C[k1]=b;if(a)C[k2]=a;
     save();w.remove();if(st.view=="class")setSwap(true);else genSetSrc(null);toast(a&&b?"تم التبديل":"تم النقل",true);
