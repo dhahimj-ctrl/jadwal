@@ -415,6 +415,16 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
 .tblock table.dtab td .s{font-size:11px;line-height:1.15}.tblock table.dtab td .t{font-size:9.5px;margin:0;line-height:1.1}
 .tblock table.dtab.w td{font-size:12px;font-weight:700;height:36px}
 .tblock .dayname{font-size:120%;color:#1f6f5c}
+.wtab{max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.wtab table{border-collapse:collapse;width:100%;font-size:13px}
+.wtab th,.wtab td{border:1px solid var(--line);padding:6px 4px;height:auto;text-align:center}
+.wtab thead th{position:sticky;top:0;background:#1f6f5c;color:#fff;z-index:1}
+.wtab th.wday{background:#e8efec;color:#1d2733;font-weight:800;width:44px}
+.wtab tbody th{background:#f4f6f8;color:#1d2733;width:44px}
+.wtab td{cursor:pointer;background:var(--panel);color:var(--ink);font-weight:700}
+.wtab td.has{background:#eef6f2;color:#1d2733}
+.wtab td span{color:#b8c3cc;font-weight:400}
+.wtab tr.dstart>*{border-top:3px solid #1f6f5c}
 </style>
 </head>
 <body>
@@ -442,6 +452,7 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
     <button class="ico" id="bClass"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="11" rx="1.5"/><path d="M8 20h8M12 15v5"/></svg>الفصول</button>
     <button class="ico" id="bSubj"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M9 8h6M9 12h6"/></svg>المواد</button>
     <button class="ico" id="bTch"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.2"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/><rect x="3" y="3" width="18" height="18" rx="2" opacity=".35"/></svg>جداول المعلمين</button>
+    <button class="ico" id="bWTab"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/><circle cx="15.5" cy="14.5" r="3"/><path d="M15.5 13v1.6l1 .8"/></svg>جدول الانتظار</button>
     <button class="ico" id="bAuto"><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>توزيع تلقائي</button>
     <button class="ico" id="bClear"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>تفريغ</span></button>
     <button class="ico" id="bSwap"><svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4"/><path d="M3 8h14"/><path d="M17 12l4 4-4 4"/><path d="M21 16H7"/></svg>تبديل</button>
@@ -1765,6 +1776,37 @@ function shareAllTeachers(){if(!st.teachers.length){toast("لا يوجد معل�
     if(b.id=="shCls"){w.remove();shareClasses();return}
     if(b.dataset.sh){b.disabled=true;b.textContent="جارٍ التجهيز…";const ok=await shareTeacher(b.dataset.sh);if(ok)SENT[b.dataset.sh]=1;draw(w)}});draw(w)}
 
+/* ===== جدول الانتظار: الأيام والحصص في صفوف، ورتب الانتظار في أعمدة، مع إسناد يدوي بالضغط ===== */
+function waitTable(){let day=st.wDay??"all";
+  const draw=w=>{const per=st.waitPer||3,days=activeDays().filter(d=>day=="all"||d.i==+day);
+    const req=st.teachers.reduce((a,t)=>a+(st.waits[t.id]||0),0),done=Object.keys(st.wslots||{}).length;
+    let h=`<h3>جدول الانتظار</h3>
+      <div class="seg tpk">${[["all","كامل الأسبوع"],...activeDays().map(d=>[String(d.i),ALL_DAYS[d.i]])].map(([v,l])=>`<button data-wd="${v}" class="${String(day)==v?"on":""}">${l}</button>`).join("")}</div>
+      <p class="note">اضغط على خانة لإسناد معلم فارغ في تلك الحصة أو تغييره. المطلوب ${req} — المُسند ${done}.</p>
+      <div class="wtab"><table><thead><tr><th>اليوم</th><th>الحصة</th>${Array.from({length:per},(_,i)=>`<th>منتظر ${i+1}</th>`).join("")}</tr></thead><tbody>`;
+    for(const d of days)for(let p=0;p<d.count;p++){const k=d.i+"-"+p,R=slotRanks(k);
+      h+=`<tr class="${p==0?"dstart":""}">${p==0?`<th rowspan="${d.count}" class="wday">${ALL_DAYS[d.i]}</th>`:""}<th>${p+1}</th>${Array.from({length:per},(_,i)=>{const t=R[i+1];return `<td data-wk="${k}" data-wr="${i+1}" class="${t?"has":""}">${t?esc(firstName(teacher(t)?.n||"")):"<span>+</span>"}</td>`}).join("")}</tr>`}
+    h+=`</tbody></table></div>
+      <div class="actions"><button id="wtPrint">🖨 طباعة جدول الانتظار</button><button id="wtAuto" ${locked()?"":"disabled"} title="${locked()?"":"اعتمد الجدول أولًا"}">توزيع تلقائي</button><button id="wtSet">أعداد الانتظار</button></div>
+      <div class="actions"><button data-close>إغلاق</button></div>`;
+    w.querySelector(".box").innerHTML=h};
+  const pick=(w,k,r)=>{const cur=slotRanks(k)[r],busyT=new Set();for(const c of st.classes){const x=st.cells[c.id]?.[k];if(x){const t=cellTeacher(x,c.id);if(t)busyT.add(t)}}
+    const free=st.teachers.filter(t=>!busyT.has(t.id)&&!excludedAt(t.id,k)&&(!waitRank(t.id,k)||t.id==cur)).map(t=>{const need=(st.waits[t.id]||0)-waitCount(t.id);return{t,need}}).sort((a,b)=>b.need-a.need);
+    modal(`<h3>منتظر ${r} — ${slotName(k)}</h3><p class="note">المعلمون الذين ليس لديهم حصة في هذا الوقت، مرتبون حسب المتبقي من انتظارهم.</p>
+      <div class="slist">${free.map(({t,need})=>`<button class="${t.id==cur?"primary":""}" data-pt="${t.id}" style="text-align:right">${esc(t.n)} <small>(${waitCount(t.id)}/${st.waits[t.id]||0}${need>0?` — متبقٍ ${need}`:""})</small></button>`).join("")||"<p class='note'>لا يوجد معلم فارغ في هذه الحصة.</p>"}</div>
+      <div class="actions">${cur?`<button class="del" data-pt="">✕ إلغاء الانتظار</button>`:""}<button data-close>رجوع</button></div>`,
+      (e,mw)=>{const b=e.target.closest("[data-pt]");if(!b)return;mw.remove();const tid=b.dataset.pt;snap(tid?"إسناد انتظار":"إلغاء انتظار");
+        if(cur)delete st.wslots[cur+"|"+k];if(tid){if(waitRank(tid,k))delete st.wslots[tid+"|"+k];st.wslots[tid+"|"+k]=r}
+        save();render();draw(w)})};
+  const w=modal("",(e,w)=>{const t=e.target,td=t.closest("td[data-wk]");
+    if(td){pick(w,td.dataset.wk,+td.dataset.wr);return}
+    const b=t.closest("button");if(!b)return;
+    if(b.dataset.wd!=null){day=b.dataset.wd;st.wDay=day;save();draw(w);return}
+    if(b.id=="wtPrint"){w.remove();printChooser("w");return}
+    if(b.id=="wtAuto"){w.remove();autoWaits();return}
+    if(b.id=="wtSet"){w.remove();$("bWait").click();return}});
+  w.querySelector(".box").style.width="min(620px,100%)";draw(w)}
+
 /* ===== بوابة الدخول ===== */
 let gateMode="in";
 function gateMsg(m,warn){const el=$("gMsg");el.textContent=m||"";el.hidden=!m;el.className="gmsg"+(warn?" warn":"")}
@@ -2340,7 +2382,7 @@ $("tbl").addEventListener("contextmenu",e=>{const g=e.target.closest("td[data-gk
 $("vGen").onclick=()=>{st.view="gen";genSwap=false;genSrc=null;if(swapMode){swapMode=false;swapSrc=null;$("swapbar").hidden=true;$("bSwap").classList.remove("on")}save();render()};
 $("bFit").onclick=()=>{st.fit=st.fit===false;save();fitSheet()};
 function showTeacherView(){st.view="teacher";genSwap=false;genSrc=null;if(swapMode){swapMode=false;swapSrc=null}$("swapbar").hidden=true;$("bSwap").classList.remove("on");save();render()}
-$("vTch").onclick=showTeacherView;$("bTch").onclick=showTeacherView;
+$("vTch").onclick=showTeacherView;$("bTch").onclick=showTeacherView;$("bWTab").onclick=waitTable;
 $("tSel").onchange=e=>{st.curT=e.target.value;if(genSwap)genSetSrc(null);save();render()};
 const stepT=d=>{const i=st.teachers.findIndex(t=>t.id==st.curT),n=st.teachers.length;if(!n)return;st.curT=st.teachers[(i+d+n)%n].id;if(genSwap)genSetSrc(null);save();render()};
 $("tPrev").onclick=()=>stepT(-1);$("tNext").onclick=()=>stepT(1);
