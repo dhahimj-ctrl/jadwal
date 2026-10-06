@@ -401,6 +401,20 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
 .opt .cpinline{grid-column:1/-1;width:100%;margin-top:2px}
 .opt .cpinline summary{cursor:pointer;font-weight:700;color:var(--accent);font-size:13px;padding:4px 0}
 .opt .cpinline .minibox{margin-top:6px}
+.agroup h4 .tq{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.agroup h4 select,.tqrow select{width:auto;padding:2px 4px;font-size:12px;font-weight:500}
+.qb.ok{color:#2e8b57!important;font-weight:700}.qb.under{color:var(--warn)!important;font-weight:700}.qb.over{color:var(--danger)!important;font-weight:700}
+.qb em{font-style:normal}
+.tqrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.wline,.wsel{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.wsel label{display:inline-flex;flex-direction:row;align-items:center;gap:3px;font-size:12px;font-weight:700;color:var(--ink)}
+.wsel select{width:auto;padding:1px 3px;font-size:12px}
+.tblock table.dtab td{height:30px;padding:1px 2px}.tblock table.dtab th{font-size:11px;padding:2px 4px}
+.tblock table.dtab tbody th{text-align:right;white-space:nowrap;background:#f4f6f8;color:#1d2733;font-weight:700}
+.tblock table.dtab thead th.dh{width:22%}.tblock table.dtab.w thead th.dh{width:14%}
+.tblock table.dtab td .s{font-size:11px;line-height:1.15}.tblock table.dtab td .t{font-size:9.5px;margin:0;line-height:1.1}
+.tblock table.dtab.w td{font-size:12px;font-weight:700;height:36px}
+.tblock .dayname{font-size:120%;color:#1f6f5c}
 </style>
 </head>
 <body>
@@ -531,7 +545,7 @@ if(!st){
   }}catch(e){}
   var seedDemo=!Object.keys(st.cells.c0).length;
 }
-st.assign=st.assign||[];st.extra=st.extra||[];st.waits=st.waits||{};st.wslots=st.wslots||{};st.waitPer=st.waitPer||3;ensureGrades();st.approved=st.approved||null;st.rules=(st.rules||defaultRules()).filter(r=>RT[r.type]);Object.keys(RT).forEach(t=>{if(!st.rules.some(r=>r.type==t))st.rules.push(mkRule(t,uid("r")))});
+st.assign=st.assign||[];st.extra=st.extra||[];st.waits=st.waits||{};st.waitR=st.waitR||{};st.wslots=st.wslots||{};st.waitPer=st.waitPer||3;ensureGrades();st.approved=st.approved||null;st.rules=(st.rules||defaultRules()).filter(r=>RT[r.type]);Object.keys(RT).forEach(t=>{if(!st.rules.some(r=>r.type==t))st.rules.push(mkRule(t,uid("r")))});
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}if(typeof cloudQueue=="function")cloudQueue()};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -672,25 +686,45 @@ function printPages(kind,ids,n){n=Math.min(5,Math.max(1,+n||1));const T=kind=="t
     <table class="tt">${kind=="t"?teacherTable(x.id,false,n>=3):classTableP(x.id,n>=3)}</table>${kind=="t"&&n==1?teacherInfo(x.id):""}
     <div class="tfoot">${sig("وكيل الشؤون التعليمية",st.deputy||"—")}${kind=="t"?sig("المعلم",""):""}${sig("مدير المدرسة",st.principal||"—")}</div></div>`;
   return pages.map(g=>`<div class="tpage tp${n}">${g.map(blk).join("")}</div>`).join("")}
-function printAllTeachers(){printChooser("t")}
 // نافذة الطباعة: الجدول المعروض، أو جداول كل المعلمين/الفصول بعدد 1-5 في الورقة
+// جداول اليوم الواحد: الانتظار، أو الفصول، أو المعلمين (اليوم في الأعلى والحصص في الصف العلوي)
+function dayTableP(kind,di){const d=st.days[di],P=d.count;let h=`<thead><tr><th class="dh">${kind=="w"?"الرتبة":kind=="dc"?"الفصل":"المعلم"}</th>${Array.from({length:P},(_,p)=>`<th>${p+1}</th>`).join("")}</tr></thead><tbody>`;
+  if(kind=="w"){const per=st.waitPer||3;for(let r=1;r<=per;r++){h+=`<tr><th>منتظر ${r}</th>`;for(let p=0;p<P;p++){const t=slotRanks(di+"-"+p)[r];h+=`<td>${t?esc(firstName(teacher(t)?.n||"")):""}</td>`}h+="</tr>"}}
+  else if(kind=="dc"){for(const c of st.classes){const C=st.cells[c.id]||{};h+=`<tr><th>${esc(c.n)}</th>`;for(let p=0;p<P;p++){const x=C[di+"-"+p];if(!x){h+="<td></td>";continue}const s=subj(x.sid),t=teacher(cellTeacher(x,c.id));
+      h+=`<td style="background:${s?.c||"#fff"}"><div class="s">${esc(s?.n||"")}</div>${t?`<div class="t">${esc(firstName(t.n))}</div>`:""}</td>`}h+="</tr>"}}
+  else{for(const t of st.teachers){const S=teacherSlots(t.id);h+=`<tr><th>${esc(t.n)}</th>`;for(let p=0;p<P;p++){const k=di+"-"+p,L=S[k],wr=waitRank(t.id,k);
+      if(L){const s=subj(L[0].x.sid);h+=`<td style="background:${s?.c||"#fff"}"><div class="s">${esc(shortCls(L[0].c))}</div><div class="t">${esc(shortSubj(s))}</div></td>`}else h+=wr?`<td class="wt"><div class="s">م${wr}</div></td>`:"<td></td>"}h+="</tr>"}}
+  return h+"</tbody>"}
+function dayPages(kind,days,n){n=Math.min(5,Math.max(1,+n||1));const pages=[];for(let i=0;i<days.length;i+=n)pages.push(days.slice(i,i+n));
+  const title={w:"جدول الانتظار",dc:"الجدول اليومي للفصول",dt:"الجدول اليومي للمعلمين"}[kind];
+  const sig=(b,v)=>`<div><b>${b}</b> ${v?esc(v):""} <i>التوقيع: ............</i></div>`;
+  const blk=di=>`<div class="tblock"><div class="thead"><b>${esc(st.school||"")}</b>${locked()?"":`<em class="dm">مسودة</em>`}<span>${title} — <b class="dayname">${ALL_DAYS[di]}</b></span></div>
+    <table class="tt dtab ${kind}">${dayTableP(kind,di)}</table><div class="tfoot">${sig("وكيل الشؤون التعليمية",st.deputy||"—")}${sig("مدير المدرسة",st.principal||"—")}</div></div>`;
+  return pages.map(g=>`<div class="tpage tp${n} dp">${g.map(blk).join("")}</div>`).join("")}
+function printAllTeachers(){printChooser("t")}
+// نافذة الطباعة: الجدول المعروض، جداول المعلمين/الفصول، جدول الانتظار، والجدول اليومي للفصول أو المعلمين
 function printChooser(kind){
   let framed=false;try{framed=window.self!==window.top}catch(_){framed=true}
   if(framed){toast("الطباعة غير متاحة داخل صفحة الرابط. حمّل الملف وافتحه في Chrome ثم اطبع");return}
-  kind=kind||(st.view=="teacher"?"t":st.view=="class"?"c":"cur");let n=st.tPer||2;
-  const cnt=()=>kind=="t"?st.teachers.length:st.classes.length;
+  kind=kind||(st.view=="teacher"?"t":st.view=="class"?"c":"cur");let n=st.tPer||2,day=st.pDay??"all";
+  const DK=["w","dc","dt"].includes(kind),ad=()=>activeDays().map(d=>d.i);
+  const pDays=()=>day=="all"?ad():[+day];
+  const cnt=()=>["w","dc","dt"].includes(kind)?pDays().length:kind=="t"?st.teachers.length:st.classes.length;
   const isGen=st.view!="class"&&st.view!="teacher",curName=isGen?"الجدول العام":st.view=="teacher"?"جدول المعلم المعروض":"جدول الفصل المعروض";
-  const draw=w=>{w.querySelector(".box").innerHTML=`<h3>طباعة</h3>
-    <div class="seg tpk">${[["cur",curName],["t","جداول كل المعلمين"],["c","جداول كل الفصول"]].map(([k,l])=>`<button data-k="${k}" class="${k==kind?"on":""}">${l}</button>`).join("")}</div>
+  const draw=w=>{const dk=["w","dc","dt"].includes(kind),unit=dk?"يوم":kind=="t"?"معلمًا":"فصلًا";w.querySelector(".box").innerHTML=`<h3>طباعة</h3>
+    <div class="seg tpk">${[["cur",curName],["t","جداول كل المعلمين"],["c","جداول كل الفصول"],["w","جدول الانتظار"],["dc","الجدول اليومي للفصول"],["dt","الجدول اليومي للمعلمين"]].map(([k,l])=>`<button data-k="${k}" class="${k==kind?"on":""}">${l}</button>`).join("")}</div>
     <p class="note">مقاس الورق:</p><div class="seg tpn">${["A4","A3"].map(x=>`<button data-pp="${x}" class="${(st.paper||"A4")==x?"on":""}">${x}</button>`).join("")}</div>
+    ${dk?`<p class="note">اليوم:</p><div class="seg tpk">${[["all","كامل الأسبوع"],...ad().map(i=>[String(i),ALL_DAYS[i]])].map(([v,l])=>`<button data-day="${v}" class="${String(day)==v?"on":""}">${l}</button>`).join("")}</div>`:""}
     ${kind=="cur"?`<p class="note">${isGen?`يُطبع الجدول العام في ورقة ${st.paper||"A4"} أفقية واحدة مع التوقيعات، ويملأ عرض الورقة. اختر المقاس نفسه في نافذة الطباعة.`:"يُطبع الجدول المعروض حاليًا."}</p>`:`
     <p class="note">ورق ${st.paper||"A4"} عمودي. عدد الجداول في كل ورقة:</p>
     <div class="seg tpn">${[1,2,3,4,5].map(i=>`<button data-n="${i}" class="${i==n?"on":""}">${i}</button>`).join("")}</div>
-    <p class="note">عدد الأوراق: <b>${Math.ceil(cnt()/n)}</b> لـ ${cnt()} ${kind=="t"?"معلمًا":"فصلًا"}.${n>=2&&kind=="t"?" تبقى أسماء المواد داخل الجداول، وتُحذف القائمة أسفل كل جدول.":""}</p>`}
+    <p class="note">عدد الأوراق: <b>${Math.ceil(cnt()/n)}</b> لـ ${cnt()} ${unit}.${n>=2&&kind=="t"?" تبقى أسماء المواد داخل الجداول، وتُحذف القائمة أسفل كل جدول.":""}${kind=="w"&&!Object.keys(st.wslots||{}).length?" <b style='color:var(--warn)'>لم يُوزّع الانتظار بعد.</b>":""}</p>`}
     <div class="actions"><button class="primary" id="tpGo">طباعة</button><button data-close>إلغاء</button></div>`};
   const w=modal("",(e,w)=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.n){n=+b.dataset.n;draw(w);return}if(b.dataset.k){kind=b.dataset.k;draw(w);return}if(b.dataset.pp){st.paper=b.dataset.pp;save();draw(w);return}
+    if(b.dataset.day!=null){day=b.dataset.day;st.pDay=day;save();draw(w);return}
     if(b.id=="tpGo"){w.remove();if(kind=="cur"){printPortrait=false;fitPrint();window.print();return}
-      if(!cnt()){toast(kind=="t"?"لا يوجد معلمون":"لا توجد فصول");return}st.tPer=n;save();printHTML(printPages(kind,null,n),true)}});draw(w)}
+      if(!cnt()){toast(kind=="t"?"لا يوجد معلمون":kind=="c"?"لا توجد فصول":"لا توجد أيام");return}st.tPer=n;save();
+      printHTML(["w","dc","dt"].includes(kind)?dayPages(kind,pDays(),n):printPages(kind,null,n),true)}});draw(w)}
 /* ملاءمة الطباعة: تصغير كل ورقة (الجدول العام خاصة) لتُطبع في صفحة واحدة */
 // مقاس الورق: A4 أو A3 (أفقي للجدول العام، عمودي لأوراق الجداول المتعددة)
 const PAPER={A4:{land:[1047,718],port:[733,1062]},A3:{land:[1512,1047],port:[1062,1527]}};
@@ -768,18 +802,23 @@ function waitMenu(td,tid,k){const r=waitRank(tid,k),per=st.waitPer||3,R=slotRank
   for(let i=1;i<=per;i++)if(i!=r&&!R[i])items.push({label:`تغيير إلى منتظر ${i}`,fn:()=>{delete st.wslots[tid+"|"+k];setWait(tid,k,i)}});
   items.push({label:"✕ إلغاء الانتظار",cls:"danger",fn:()=>setWait(tid,k,0)});
   popMenu(td,`منتظر ${r} — ${teacher(tid)?.n||""} — ${slotName(k)}`,items)}
+// عدد الانتظار لكل رتبة (منتظر 1 و2 و3) للمعلم؛ إن لم يُحدد فيُستخدم العدد الكلي بأي رتبة
+function setWaitRank(tid,r,v){st.waitR=st.waitR||{};const per=st.waitPer||3,a=(st.waitR[tid]||[0,0,0]).slice(0,3);while(a.length<3)a.push(0);a[r-1]=v;st.waitR[tid]=a;st.waits[tid]=a.slice(0,per).reduce((x,y)=>x+y,0)}
+const waitRankCount=(tid,r)=>{let n=0;for(const key in st.wslots)if(key.startsWith(tid+"|")&&st.wslots[key]==r)n++;return n};
 function autoWaits(){snap("توزيع الانتظار");cleanWaits();
   const per=st.waitPer||3,days=activeDays(),slots=[];for(const d of days)for(let p=0;p<d.count;p++)slots.push([d.i,p]);
   const occ={};for(const c of st.classes)for(const[k,x]of Object.entries(st.cells[c.id]||{})){const t=cellTeacher(x,c.id);if(t)(occ[t]=occ[t]||{})[k]=1}
-  const rem={};st.teachers.forEach(t=>rem[t.id]=Math.max(0,(st.waits[t.id]||0)-waitCount(t.id)));
+  const rem={},remR={};st.teachers.forEach(t=>{rem[t.id]=Math.max(0,(st.waits[t.id]||0)-waitCount(t.id));const R=st.waitR?.[t.id];if(R)remR[t.id]=[0,1,2].map(i=>Math.max(0,(R[i]||0)-waitRankCount(t.id,i+1)))});
+  const need=(t,r)=>remR[t]?remR[t][r-1]>0:rem[t]>0;
   const wDay=(t,d)=>{let n=0;for(const key in st.wslots)if(key.startsWith(t+"|"+d+"-"))n++;return n};
   let placed=0;
   for(let r=1;r<=per;r++){const order=slots.slice().sort(()=>Math.random()-.5);
     for(const[d,p]of order){const k=d+"-"+p;if(slotRanks(k)[r])continue;
-      const cand=st.teachers.filter(t=>rem[t.id]>0&&!occ[t.id]?.[k]&&!waitRank(t.id,k)&&!excludedAt(t.id,k));if(!cand.length)continue;
-      cand.sort((a,b)=>(wDay(a.id,d)-wDay(b.id,d))*10+(rem[b.id]-rem[a.id])+(Math.random()-.5));
-      const t=cand[0];st.wslots[t.id+"|"+k]=r;rem[t.id]--;placed++}}
-  save();render();const left=Object.values(rem).reduce((a,b)=>a+b,0);
+      const cand=st.teachers.filter(t=>need(t.id,r)&&!occ[t.id]?.[k]&&!waitRank(t.id,k)&&!excludedAt(t.id,k));if(!cand.length)continue;
+      const left=t=>remR[t]?remR[t][r-1]:rem[t];
+      cand.sort((a,b)=>(wDay(a.id,d)-wDay(b.id,d))*10+(left(b.id)-left(a.id))+(Math.random()-.5));
+      const t=cand[0];st.wslots[t.id+"|"+k]=r;rem[t.id]--;if(remR[t.id])remR[t.id][r-1]--;placed++}}
+  save();render();const left=st.teachers.reduce((a,t)=>a+(remR[t.id]?remR[t.id].reduce((x,y)=>x+y,0):rem[t.id]),0);
   toast(`وُزّع ${placed} انتظار`+(left?`، وبقي ${left} لم يجد له وقت فراغ مناسب`:""),true)}
 // تنظيف الخانات المقسومة بعد زوال التعارض: حصة إضافية بلا حصة أساسية تصبح أساسية، وتُزال علامة التقسيم إن لم يعد هناك تعارض
 function normalizeSplits(){let ch=0;
@@ -1099,12 +1138,23 @@ $("bAsg").onclick=()=>{
     if(t.id=="add"){
       const picked=[...w.querySelectorAll("#aC input:checked")].map(x=>x.value);
       if(!fT||!fS||!picked.length){msg="اختر المعلم ثم المادة ثم فصلًا واحدًا على الأقل.";draw();return}
+      const tq=+teacher(fT)?.q||0,after=load(fT)+picked.filter(cid=>!assigned(fS,cid)).reduce((n,cid)=>n+W(subj(fS),cid),0);
+      if(tq&&after>tq&&!t.dataset.ok){t.dataset.ok=1;t.textContent=`سيصبح ${after} ويتجاوز النصاب ${tq} — اضغط للتأكيد`;t.classList.add("del");setTimeout(()=>{if(t.isConnected){delete t.dataset.ok;t.textContent="إضافة الإسناد";t.classList.remove("del")}},4000);return}
       picked.forEach(cid=>{if(!assigned(fS,cid))st.assign.push({id:uid("a"),tid:fT,sid:fS,cid,dbl:fD})});
       save();const rm=resolveClashes(true);msg=rm?`تنبيه: كان للمعلم حصص في الوقت نفسه في فصول أخرى، فأُزيلت ${rm} حصة متعارضة وأصبحت ضمن الحصص غير المدرجة لإعادة إدراجها.`:"";draw();render();toast(`أُسند ${picked.length} فصل`);
     }
   });
   const box=w.querySelector(".box");
+  box.addEventListener("change",e=>{const wt=e.target.dataset?.wt2;if(wt){setWaitRank(wt,+e.target.dataset.wr,+e.target.value);save();draw();return}
+    const id=e.target.dataset?.q;if(id==null)return;const t=teacher(id);if(!t)return;t.q=e.target.value?+e.target.value:null;save();draw()});
   function load(tid){return st.assign.filter(a=>a.tid==tid).reduce((n,a)=>n+W(subj(a.sid),a.cid),0)}
+  // نصاب المعلم: يُختار من القائمة، ويُقارن به العدد المسند (تنبيه عند الزيادة أو النقص)
+  const qOpts=q=>`<option value="">النصاب —</option>${Array.from({length:40},(_,i)=>i+1).map(i=>`<option value="${i}" ${+q==i?"selected":""}>النصاب ${i}</option>`).join("")}`;
+  // اختيار عدد الانتظار لكل رتبة بجانب بعضها
+  const wSel=tid=>{const per=st.waitPer||3,R=(st.waitR||{})[tid];return `<span class="wsel">${Array.from({length:per},(_,i)=>`<label>م${i+1}<select data-wr="${i+1}" data-wt2="${tid}" aria-label="منتظر ${i+1}">${Array.from({length:11},(_,v)=>`<option value="${v}" ${(R?R[i]||0:0)==v?"selected":""}>${v}</option>`).join("")}</select></label>`).join("")}${!R&&st.waits[tid]?`<small title="عدد كلي بأي رتبة من أيقونة الانتظار">(كلي: ${st.waits[tid]})</small>`:""}</span>`};
+  function loadBadge(t){const n=load(t.id),q=+t.q||0;if(!q)return `<small>${n} حصة أسبوعيًا</small>`;
+    const cl=n>q?"over":n<q?"under":"ok",tip=n>q?`يزيد ${n-q} عن النصاب`:n<q?`ينقص ${q-n} عن النصاب`:"مطابق للنصاب";
+    return `<small class="qb ${cl}" title="${tip}">${n} / ${q} حصة${n!=q?` <em>(${n>q?"+":"−"}${Math.abs(n-q)})</em>`:" ✓"}</small>`}
   function draw(){
     // الفصول المتاحة: التي لم تُسند فيها هذه المادة لأي معلم
     const free=fS?st.classes.filter(c=>!assigned(fS,c.id)&&W(subj(fS),c.id)>0):[];
@@ -1112,7 +1162,8 @@ $("bAsg").onclick=()=>{
     const totalNeed=st.subjects.reduce((a,s)=>a+st.classes.filter(c=>W(s,c.id)>0).length,0),done=st.assign.length;
     box.innerHTML=`<h3>إسناد المواد للمعلمين</h3>
      ${st.teachers.length&&st.subjects.length&&st.classes.length?`
-     <label>١. المعلم<select id="aT"><option value="">— اختر المعلم —</option>${st.teachers.map(t=>`<option value="${t.id}" ${t.id==fT?"selected":""}>${esc(t.n)}</option>`).join("")}</select></label>
+     <label>١. المعلم<select id="aT"><option value="">— اختر المعلم —</option>${st.teachers.map(t=>`<option value="${t.id}" ${t.id==fT?"selected":""}>${esc(t.n)} (${load(t.id)}${t.q?" من "+t.q:""})</option>`).join("")}</select></label>
+     ${fT?(()=>{const t=teacher(fT),n=load(fT),q=+t.q||0;return `<div class="tqrow"><span>نصاب المعلم:</span><select data-q="${fT}">${qOpts(t.q)}</select><span class="qb ${!q?"":n>q?"over":n<q?"under":"ok"}">المسند: ${n}${q?` — ${n>q?`يزيد ${n-q}`:n<q?`المتبقي ${q-n}`:"مكتمل ✓"}`:""}</span></div><div class="tqrow"><span>الانتظار:</span>${wSel(fT)}</div>`})():""}
      <label>٢. المادة<select id="aS" ${fT?"":"disabled"}><option value="">— اختر المادة —</option>${st.subjects.map(s=>{const n=st.classes.filter(c=>!assigned(s.id,c.id)&&W(s,c.id)>0).length;return `<option value="${s.id}" ${s.id==fS?"selected":""} ${n?"":"disabled"}>${esc(s.n)}${n?"":" (أُسندت في كل الفصول)"}</option>`}).join("")}</select></label>
      <label>٣. الفصل</label>
      <div class="checks" id="aC">${!fS?"<p class='note'>اختر المادة لتظهر الفصول المتاحة.</p>":free.length?free.map(c=>`<label><input type="checkbox" value="${c.id}">${esc(c.n)} <small style="color:var(--muted)">(${W(subj(fS),c.id)} حصص)</small></label>`).join(""):"<p class='note'>أُسندت هذه المادة في جميع الفصول.</p>"}</div>
@@ -1123,7 +1174,7 @@ $("bAsg").onclick=()=>{
      <button class="primary" id="add">إضافة الإسناد</button>`
      :`<p class="note">أضف المعلمين والمواد والفصول أولًا من أيقوناتها.</p>`}
      <div class="total">أُسند ${done} من ${totalNeed} (مادة × فصل)</div>
-     <div class="slist">${groups.map(g=>`<div class="agroup"><h4>${esc(g.t.n)}<small>${load(g.t.id)} حصة أسبوعيًا</small></h4>
+     <div class="slist">${groups.map(g=>`<div class="agroup"><h4><span class="tq">${esc(g.t.n)}<select data-q="${g.t.id}" aria-label="نصاب ${esc(g.t.n)}" title="نصاب المعلم">${qOpts(g.t.q)}</select></span>${loadBadge(g.t)}</h4><div class="wline"><span>الانتظار:</span>${wSel(g.t.id)}<small>${waitCount(g.t.id)?`المُوزّع ${waitCount(g.t.id)} من ${st.waits[g.t.id]||0}`:""}</small></div>
        ${g.items.map(a=>{const s=subj(a.sid);return `<div class="aitem" style="background:${s.c};color:#1d2733"><span><b>${esc(s.n)}</b> — ${esc(cls(a.cid).n)}</span><span style="display:flex;gap:4px"><button class="tg ${a.dbl?"on":""}" data-tg="${a.id}" title="تبديل بين مفردة ومزدوجة">${a.dbl?"مزدوجة":"مفردة"}</button><button class="del" data-del="${a.id}">حذف</button></span></div>`}).join("")}</div>`).join("")||"<p class='note'>لا توجد إسنادات بعد.</p>"}</div>
      <div class="actions"><button data-close>تم</button></div>`;
     const aT=$("aT"),aS=$("aS");
@@ -1136,7 +1187,7 @@ $("bAsg").onclick=()=>{
 /* ===== أيقونة الانتظار ===== */
 $("bWait").onclick=()=>{
   const w=modal("",(e,w)=>{const t=e.target;
-    if(t.id=="wAll"){const v=+$("wAllN").value;st.teachers.forEach(x=>st.waits[x.id]=v);save();draw();toast("طُبّق العدد على كل المعلمين");return}
+    if(t.id=="wAll"){const v=+$("wAllN").value;st.teachers.forEach(x=>{st.waits[x.id]=v;delete (st.waitR||{})[x.id]});save();draw();toast("طُبّق العدد على كل المعلمين");return}
     if(t.id=="wAuto"){if(!locked()){toast("اعتمد الجدول أولًا من أيقونة «اعتماد»، ثم وزّع الانتظار");return}w.remove();autoWaits();return}
     if(t.id=="wClear")arm(t,"تأكيد؟",()=>{snap("مسح الانتظار");st.wslots={};save();draw();render();toast("مُسح كل الانتظار",true)});
   });
@@ -1157,7 +1208,7 @@ $("bWait").onclick=()=>{
   }
   box.addEventListener("change",e=>{
     if(e.target.id=="wPer"){st.waitPer=+e.target.value;for(const[k,v]of Object.entries(st.wslots))if(v>st.waitPer)delete st.wslots[k];save();draw();render();return}
-    const r=e.target.closest(".wrow[data-id]");if(r&&e.target.dataset.wt!=null){st.waits[r.dataset.id]=+e.target.value;save();draw()}
+    const r=e.target.closest(".wrow[data-id]");if(r&&e.target.dataset.wt!=null){st.waits[r.dataset.id]=+e.target.value;delete (st.waitR||{})[r.dataset.id];save();draw()}
   });
   draw();
 };
@@ -1167,7 +1218,7 @@ const ARCH_MAX=3;
 function archStats(d){let placed=0;for(const c of st.classes)placed+=Object.keys(d.cells?.[c.id]||{}).length;
   let need=0;for(const c of st.classes)for(const s of st.subjects)need+=W(s,c.id);return{placed,miss:Math.max(0,need-placed),waits:Object.keys(d.wslots||{}).length,ok:!!d.approved}}
 function fmtDate(iso){const d=new Date(iso);try{return d.toLocaleDateString("ar-SA",{day:"numeric",month:"long",year:"numeric"})+"هـ — "+d.toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long",year:"numeric"})+"م — "+d.toLocaleTimeString("ar-SA",{hour:"numeric",minute:"2-digit"})}catch(_){return d.toLocaleString()}}
-const ARCH_KEYS=["cells","extra","wslots","assign","approved","teachers","subjects","classes","grades","days","school","deputy","principal","waits","waitPer"];
+const ARCH_KEYS=["cells","extra","wslots","assign","approved","teachers","subjects","classes","grades","days","school","deputy","principal","waits","waitR","waitPer"];
 const curData=()=>{const o={};ARCH_KEYS.forEach(k=>o[k]=st[k]??null);return JSON.parse(JSON.stringify(o))};
 // تنفيذ دالة على بيانات نسخة مؤرشفة مؤقتًا (للعرض والطباعة) ثم الرجوع إلى النسخة الحالية
 function withArchive(d,fn){const saved=st;st=Object.assign({},saved);ARCH_KEYS.forEach(k=>{if(d[k]!==undefined&&d[k]!==null)st[k]=JSON.parse(JSON.stringify(d[k]))});st.approved=d.approved||null;st.wslots=d.wslots||{};
@@ -1518,7 +1569,7 @@ function cloudAttach(sid){CLOUD.unsub?.();CLOUD.sid=sid;CLOUD.live=false;clearTi
   err=>{cloudSet("error",err.code=="permission-denied"?"لا تملك صلاحية على هذه المدرسة":err.message);toast("تعذّرت المزامنة: "+CLOUD.err)})}
 function applyRemote(d){let remote;try{remote=JSON.parse(d.state)}catch(_){return}
   const keep={view:st.view,cur:st.cur,curT:st.curT,fit:st.fit};st=Object.assign(remote,keep);
-  st.extra=st.extra||[];st.wslots=st.wslots||{};st.assign=st.assign||[];st.waits=st.waits||{};st.rules=(st.rules||defaultRules()).filter(r=>RT[r.type]);ensureGrades();
+  st.extra=st.extra||[];st.wslots=st.wslots||{};st.assign=st.assign||[];st.waits=st.waits||{};st.waitR=st.waitR||{};st.rules=(st.rules||defaultRules()).filter(r=>RT[r.type]);ensureGrades();
   CLOUD.rev=d.rev;CLOUD.applying=true;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(_){}CLOUD.applying=false;
   UNDO.length=0;updUndo();render();cloudSet("synced");
   if(d.updatedBy&&d.updatedBy!==CLOUD.user?.email)toast(`حُدّث الجدول من ${uName(d.updatedByName||d.updatedBy)}`)}
