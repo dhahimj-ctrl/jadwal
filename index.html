@@ -213,7 +213,7 @@ table.tt td .t{font-size:11px}
 .aitem button.tg{padding:4px 10px;font-size:12px;background:#fff;color:#1d2733;border-color:#9aa8b5}
 .aitem button.tg.on{background:#1f6f5c;color:#fff;border-color:#1f6f5c}
 td i.lk{position:absolute;top:1px;left:2px;font-style:normal;font-size:10px;line-height:1;opacity:.85}
-td.wt{background:#eef0f4}
+td.wt{background:#fff}
 table.gen td.wt .c{color:#4a5866;font-weight:800}
 table.tt td.wt .s{color:#4a5866}
 td.tot small.wn{display:block;font-size:9px;font-weight:500;color:#5d6b7a}
@@ -422,7 +422,7 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
 .wtab th.wday{background:#e8efec;color:#1d2733;font-weight:800;width:44px}
 .wtab tbody th{background:#f4f6f8;color:#1d2733;width:44px}
 .wtab td{cursor:pointer;background:var(--panel);color:var(--ink);font-weight:700}
-.wtab td.has{background:#eef6f2;color:#1d2733}
+.wtab td.has{background:var(--panel);color:#1d2733}
 .wtab td span{color:#b8c3cc;font-weight:400}
 .wtab tr.dstart>*{border-top:3px solid #1f6f5c}
 </style>
@@ -1448,7 +1448,7 @@ const XW=(()=>{
 // أنماط الخلايا المشتركة لملفات التصدير
 const XS={title:{b:1,sz:16,color:"#1f6f5c",wrap:false},sub:{b:1,sz:12,color:"#1d2733",wrap:false},info:{sz:11,color:"#3f4b57",wrap:false},
   head:{b:1,sz:11,color:"#ffffff",fill:"#1f6f5c",border:"thin"},head2:{b:1,sz:10,color:"#1d2733",fill:"#e8efec",border:"thin"},
-  day:{b:1,sz:11,fill:"#e8efec",border:"thin"},cell:{sz:10,border:"thin"},wait:{i:1,sz:10,color:"#4a5866",fill:"#eef0f4",border:"thin"},
+  day:{b:1,sz:11,fill:"#e8efec",border:"thin"},cell:{sz:10,border:"thin"},wait:{i:1,sz:10,color:"#4a5866",border:"thin"},
   name:{b:1,sz:11,border:"thin",h:"right"},tot:{b:1,sz:11,border:"thin",fill:"#f4f6f8"},sig:{b:1,sz:11,color:"#1f6f5c",wrap:false},off:{fill:"#e9edf0",border:"thin"}};
 const xlFile=t=>`${t}_${(st.school||"المدرسة").replace(/[\\/:*?"<>|]/g,"")}.xlsx`;
 const subjFill=s=>({...XS.cell,fill:s?.c||null});
@@ -1727,7 +1727,7 @@ async function tablesPNG(list){if(!list.length)return null;
 function imgItem(kind,id){
   if(kind=="t"){const t=teacher(id),S=teacherSlots(id),ld=teacherLoad(id),wn=waitCount(id);
     return{name:t.n,title:`جدول المعلم: ${t.n}`,sub:`النصاب: ${ld} حصة${wn?`   —   الانتظار: ${wn}`:""}`,
-      cell:(d,p)=>{const k=d+"-"+p,L=S[k],wr=waitRank(id,k);if(L){const s=subj(L[0].x.sid);return{fill:s?.c,lines:[[s?.n||"",1],[L[0].c.n,0]]}}return wr?{fill:"#eef0f4",lines:[["انتظار "+wr,1]]}:null}}}
+      cell:(d,p)=>{const k=d+"-"+p,L=S[k],wr=waitRank(id,k);if(L){const s=subj(L[0].x.sid);return{fill:s?.c,lines:[[s?.n||"",1],[L[0].c.n,0]]}}return wr?{fill:"#ffffff",lines:[["انتظار "+wr,1]]}:null}}}
   const c=cls(id),C=st.cells[id]||{};
   return{name:c.n,title:`جدول الفصل: ${c.n}`,sub:`عدد الحصص: ${Object.keys(C).filter(okSlot).length}`,
     cell:(d,p)=>{const k=d+"-"+p,L=[C[k],...extrasAt(id,k)].filter(Boolean);if(!L.length)return null;const lines=[];
