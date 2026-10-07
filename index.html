@@ -2167,11 +2167,29 @@ document.addEventListener("pointermove",e=>{if(!drag)return;
     const gh=document.createElement("div");gh.className="dragghost";gh.innerHTML=drag.g.innerHTML;gh.style.background=drag.g.style.background;document.body.appendChild(gh);drag.ghost=gh;
     hlCls=drag.cid;applyHL(drag.cid);rowHL();
     // منطقة إفلات لإرجاع الحصة إلى غير المدرجة
-    if(!drag.pend){const z=document.createElement("div");z.className="dropout";z.innerHTML="⬇ أفلت هنا لإرجاع الحصة إلى «حصص لم تُدرج»";document.body.appendChild(z);drag.zone=z}}
+    if(!drag.pend){const z=document.createElement("div");z.className="dropout";z.innerHTML="⬇ أفلت هنا لإرجاع الحصة إلى «حصص لم تُدرج»";document.body.appendChild(z);drag.zone=z}
+    autoScrollStart()}
+  drag.lx=e.clientX;drag.ly=e.clientY;
   drag.ghost.style.left=(e.clientX+8)+"px";drag.ghost.style.top=(e.clientY-40)+"px";
-  document.querySelectorAll(".droptgt").forEach(x=>x.classList.remove("droptgt"));
-  const t=dragTarget(e.clientX,e.clientY);if(t&&(t.dataset.gt==drag.t||(drag.pend&&!drag.t))&&t!=drag.g)t.classList.add("droptgt");
-  if(drag.zone){const over=outZone(e.clientX,e.clientY);drag.zone.classList.toggle("over",over);$("pending").classList.toggle("over",over)}});
+  dragMark(e.clientX,e.clientY)});
+function dragMark(x,y){if(!drag)return;document.querySelectorAll(".droptgt").forEach(el=>el.classList.remove("droptgt"));
+  const t=dragTarget(x,y);if(t&&(t.dataset.gt==drag.t||(drag.pend&&!drag.t))&&t!=drag.g)t.classList.add("droptgt");
+  if(drag.zone){const over=outZone(x,y);drag.zone.classList.toggle("over",over);$("pending").classList.toggle("over",over)}}
+// تمرير الصفحة والجدول تلقائيًا عند اقتراب الحصة المسحوبة من الحواف (أعلى/أسفل/يمين/يسار)
+function autoScrollStart(){const EDGE=70,MAX=22;
+  const sp=(d)=>d<EDGE?Math.ceil((EDGE-d)/EDGE*MAX):0;
+  const tick=()=>{if(!drag||!drag.active)return;const x=drag.lx,y=drag.ly;if(x!=null){
+      const stg=$("stage"),r=stg.getBoundingClientRect(),pend=$("pending"),pb=!pend.hidden?pend.getBoundingClientRect().top:innerHeight;
+      const bottom=Math.min(innerHeight,pb),onPend=y>pb;let moved=false;
+      // داخل منطقة الجدول القابلة للتمرير
+      if(stg.scrollWidth>stg.clientWidth+2&&y>r.top&&y<r.bottom){const dl=sp(x-r.left),dr=sp(r.right-x);if(dl){stg.scrollLeft-=dl;moved=true}else if(dr){stg.scrollLeft+=dr;moved=true}}
+      if(stg.scrollHeight>stg.clientHeight+2&&x>r.left&&x<r.right&&!onPend){const du=sp(y-Math.max(r.top,0)),dd=sp(Math.min(r.bottom,bottom)-y);if(du&&stg.scrollTop>0){stg.scrollTop-=du;moved=true}else if(dd&&stg.scrollTop<stg.scrollHeight-stg.clientHeight){stg.scrollTop+=dd;moved=true}}
+      // الصفحة كلها
+      if(!onPend){const du=sp(y),dd=sp(bottom-y);if(du&&scrollY>0){scrollBy(0,-du);moved=true}else if(dd&&scrollY<document.documentElement.scrollHeight-innerHeight){scrollBy(0,dd);moved=true}}
+      const dl=sp(x),dr=sp(innerWidth-x);if(dl&&document.documentElement.scrollWidth>innerWidth){scrollBy(-dl,0);moved=true}else if(dr&&document.documentElement.scrollWidth>innerWidth){scrollBy(dr,0);moved=true}
+      if(moved)dragMark(x,y)}
+    requestAnimationFrame(tick)};
+  requestAnimationFrame(tick)}
 function outZone(x,y){const el=document.elementFromPoint(x,y);return !!(el&&el.closest(".dropout,#pending"))}
 document.addEventListener("pointerup",e=>{if(!drag)return;const d=drag;drag=null;if(d.active){hlT=null;rowHL()}
   if(d.active){const toOut=!d.pend&&outZone(e.clientX,e.clientY);d.ghost?.remove();d.zone?.remove();$("pending").classList.remove("over");d.g.classList.remove("dragsrc");document.body.classList.remove("dragging");
