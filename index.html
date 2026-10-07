@@ -214,6 +214,9 @@ table.tt td .t{font-size:11px}
 .aitem button.tg.on{background:#1f6f5c;color:#fff;border-color:#1f6f5c}
 td i.lk{position:absolute;top:1px;left:2px;font-style:normal;font-size:10px;line-height:1;opacity:.85}
 td.wt{background:#fff}
+td.wt>div{display:inline-flex!important;align-items:center;justify-content:center;border:1.6px solid #1d2733;border-radius:999px;min-width:1.9em;min-height:1.9em;padding:0 .35em;line-height:1;box-sizing:border-box;margin:auto}
+table.gen td.wt{text-align:center;vertical-align:middle}table.gen td.wt>div{border-width:1.2px;min-width:2.1em;min-height:1.75em;font-size:10px}
+.sheet.fitone table.gen td.wt>div{min-height:min(1.9em,calc(var(--rh,26px) - 3px))}
 table.gen td.wt .c{color:#4a5866;font-weight:800}
 table.tt td.wt .s{color:#4a5866}
 td.tot small.wn{display:block;font-size:9px;font-weight:500;color:#5d6b7a}
@@ -250,11 +253,19 @@ td.tot small.wn{display:block;font-size:9px;font-weight:500;color:#5d6b7a}
 table.pv{min-width:900px;background:#fff;color:#1d2733}
 table.pv td{cursor:default}
 /* قياس أبعاد الطباعة: نفس تنسيق الطباعة على ورقة A4 عرضية (277×190 مم) */
+body.pm .sheet.fitone{zoom:var(--pz,1)}
 body.pm .sheet{transform:none!important;width:1047px!important;min-width:0!important;padding:0!important;box-shadow:none!important}
 body.pm table.gen{min-width:0!important;font-size:9px}body.pm table.gen td{height:var(--rh,26px)}body.pm table.gen td .sj{font-size:7px}body.pm table.gen th.tn{width:120px}body.pm .gnote{display:none}
 body.pm .hl,body.pm .cf{animation:none!important}
 body.pm.pall #allT{display:block!important;position:absolute;left:-99999px;top:0}
 @media print{.sheet.fitone{width:1047px!important;zoom:var(--pz,1);break-inside:avoid;page-break-inside:avoid}}
+.sheet.fitone .foot{margin-top:10px;font-size:13px}.sheet.fitone .foot i{margin-top:12px;padding-top:2px;font-size:10px}
+.sheet.fitone h2{margin-top:0;margin-bottom:2px}.sheet.fitone h3{margin-top:0;margin-bottom:6px;padding-bottom:5px}
+.sheet.fitone table.gen td{height:var(--rh,26px)!important}
+.sheet.fitone.bigr table.gen td .c{font-size:11.5px}.sheet.fitone.bigr table.gen td .sj{font-size:8.5px}
+body:not(.nobgp) .sheet.fitone table.gen tbody th[data-tn]{background:#e3eee9!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body:not(.nobgp) .sheet table td,body:not(.nobgp) .tpage table td,body:not(.nobgp) table td .half{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@media print{body.nobgp .sheet td:not(.off),body.nobgp .sheet td .half,body.nobgp .tpage td:not(.off),body.nobgp .tpage td .half,body.nobgp table.gen tbody th{background:#fff!important}}
 /* تثبيت صفي الأيام والحصص وعمود المعلمين أثناء التمرير في الجدول العام */
 @media screen{
   body.vgen .stage:not(.scaled){max-height:max(300px,calc(100vh - 110px - var(--pendH,0px)));overflow:auto;border-radius:10px;overscroll-behavior:contain}
@@ -726,12 +737,12 @@ function printChooser(kind){
     <div class="seg tpk">${[["cur",curName],["t","جداول كل المعلمين"],["c","جداول كل الفصول"],["w","جدول الانتظار"],["dc","الجدول اليومي للفصول"],["dt","الجدول اليومي للمعلمين"]].map(([k,l])=>`<button data-k="${k}" class="${k==kind?"on":""}">${l}</button>`).join("")}</div>
     <p class="note">مقاس الورق:</p><div class="seg tpn">${["A4","A3"].map(x=>`<button data-pp="${x}" class="${(st.paper||"A4")==x?"on":""}">${x}</button>`).join("")}</div>
     ${dk?`<p class="note">اليوم:</p><div class="seg tpk">${[["all","كامل الأسبوع"],...ad().map(i=>[String(i),ALL_DAYS[i]])].map(([v,l])=>`<button data-day="${v}" class="${String(day)==v?"on":""}">${l}</button>`).join("")}</div>`:""}
-    ${kind=="cur"?`<p class="note">${isGen?`يُطبع الجدول العام في ورقة ${st.paper||"A4"} أفقية واحدة مع التوقيعات، ويملأ عرض الورقة. اختر المقاس نفسه في نافذة الطباعة.`:"يُطبع الجدول المعروض حاليًا."}</p>`:`
+    ${kind=="cur"?`${true?`<p class="note">ألوان الخلفية في الجداول:</p><div class="seg tpn"><button data-bg="1" class="${st.pNoBg?"":"on"}">ملوّنة</button><button data-bg="0" class="${st.pNoBg?"on":""}">بدون ألوان</button></div>`:""}<p class="note">${isGen?`يُطبع الجدول العام في ورقة ${st.paper||"A4"} أفقية واحدة مع التوقيعات، ويملأ الصفحة طولًا وعرضًا. اختر المقاس نفسه في نافذة الطباعة.`:"يُطبع الجدول المعروض حاليًا."}</p>`:`
     <p class="note">ورق ${st.paper||"A4"} عمودي. عدد الجداول في كل ورقة:</p>
     <div class="seg tpn">${[1,2,3,4,5].map(i=>`<button data-n="${i}" class="${i==n?"on":""}">${i}</button>`).join("")}</div>
     <p class="note">عدد الأوراق: <b>${Math.ceil(cnt()/n)}</b> لـ ${cnt()} ${unit}.${n>=2&&kind=="t"?" تبقى أسماء المواد داخل الجداول، وتُحذف القائمة أسفل كل جدول.":""}${kind=="w"&&!Object.keys(st.wslots||{}).length?" <b style='color:var(--warn)'>لم يُوزّع الانتظار بعد.</b>":""}</p>`}
     <div class="actions"><button class="primary" id="tpGo">طباعة</button><button data-close>إلغاء</button></div>`};
-  const w=modal("",(e,w)=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.n){n=+b.dataset.n;draw(w);return}if(b.dataset.k){kind=b.dataset.k;draw(w);return}if(b.dataset.pp){st.paper=b.dataset.pp;save();draw(w);return}
+  const w=modal("",(e,w)=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.n){n=+b.dataset.n;draw(w);return}if(b.dataset.k){kind=b.dataset.k;draw(w);return}if(b.dataset.pp){st.paper=b.dataset.pp;save();draw(w);return}if(b.dataset.bg){st.pNoBg=b.dataset.bg=="0";save();draw(w);return}
     if(b.dataset.day!=null){day=b.dataset.day;st.pDay=day;save();draw(w);return}
     if(b.id=="tpGo"){w.remove();if(kind=="cur"){printPortrait=false;fitPrint();window.print();return}
       if(!cnt()){toast(kind=="t"?"لا يوجد معلمون":kind=="c"?"لا توجد فصول":"لا توجد أيام");return}st.tPer=n;save();
@@ -742,17 +753,22 @@ const PAPER={A4:{land:[1047,718],port:[733,1062]},A3:{land:[1512,1047],port:[106
 let printPortrait=false;
 function setPage(portrait){printPortrait=!!portrait;const P=st.paper=="A3"?"A3":"A4";let el=$("pgSize");if(!el){el=document.createElement("style");el.id="pgSize";document.head.appendChild(el)}
   el.textContent=`@page{size:${P} ${portrait?"portrait":"landscape"};margin:${portrait?8:10}mm}`;document.documentElement.style.setProperty("--tpw",PAPER[P].port[0]+"px")}
-function fitPrint(){const P=PAPER[st.paper=="A3"?"A3":"A4"],[PW,PH]=P.land;if(!printPortrait)setPage(false);document.body.classList.add("pm");
+function fitPrint(){const P=PAPER[st.paper=="A3"?"A3":"A4"],[PW,PH]=P.land;if(!printPortrait)setPage(false);document.body.classList.add("pm");document.body.classList.toggle("nobgp",!!st.pNoBg);
   const sheets=document.body.classList.contains("pall")?[...document.querySelectorAll("#allT .sheet")]:[document.querySelector(".stage .sheet")];
-  document.querySelectorAll(".sheet.fitone").forEach(x=>{x.classList.remove("fitone");x.style.removeProperty("--pz");x.style.removeProperty("--rh");x.style.removeProperty("width")});
-  const H=PH*0.95;
+  document.querySelectorAll(".sheet.fitone").forEach(x=>{x.classList.remove("fitone");x.style.removeProperty("--pz");x.style.removeProperty("--rh");x.classList.remove("bigr");x.style.removeProperty("width")});
+  const H=PH*0.95,HG=PH*0.985;
   for(const sh of sheets){if(!sh||!sh.querySelector("table.gen"))continue;sh.classList.add("fitone");let h=sh.scrollHeight;
     // 1) تقليل ارتفاع صفوف المعلمين (حتى 15 بكسل) ليتسع الجدول مع التوقيعات في صفحة واحدة
     const rows=sh.querySelectorAll("table.gen tbody tr").length;
     if(rows&&h>H){const rh=Math.max(15,26-(h-H)/rows);sh.style.setProperty("--rh",rh.toFixed(1)+"px");h=sh.scrollHeight}
+    // 1ب) إن بقيت مساحة فارغة أسفل الورقة: نُكبّر ارتفاع الصفوف لتملأ الصفحة (حتى 60 بكسل) مع بقائها ورقة واحدة
+    else if(rows&&h<HG){let rh=Math.min(60,26+(HG-h)/rows);for(let i=0;i<6;i++){sh.style.setProperty("--rh",rh.toFixed(1)+"px");sh.classList.toggle("bigr",rh>=34);h=sh.scrollHeight;if(h<=HG)break;rh=Math.max(26,rh-(h-HG)/rows-.5)}
+      if(h>HG){sh.style.setProperty("--rh","26px");sh.classList.remove("bigr");h=sh.scrollHeight}}
     // 2) إن بقي أطول من الصفحة: نُصغّر ونوسّع عرض الورقة بالنسبة نفسها حتى يملأ الجدول عرض الصفحة كاملًا
-    let z=1;for(let i=0;i<4;i++){z=Math.min(1,H/h);sh.style.setProperty("width",(PW/z).toFixed(0)+"px","important");h=sh.scrollHeight}
-    z=Math.min(1,H/h,PW/sh.scrollWidth);sh.style.setProperty("--pz",z.toFixed(4));
+    const L=h<=HG&&h>H?HG:H;let z=1;for(let i=0;i<4;i++){z=Math.min(1,L/h);sh.style.setProperty("width",(PW/z).toFixed(0)+"px","important");h=sh.scrollHeight}
+    z=Math.min(1,L/h,PW/sh.scrollWidth);sh.style.setProperty("--pz",z.toFixed(4));
+    // تحقق نهائي من الارتفاع الفعلي بعد التصغير (هامش أمان حتى لا تنتقل التوقيعات لورقة ثانية)
+    for(let i=0;i<4;i++){const rh2=sh.getBoundingClientRect().height;if(rh2<=L*0.99)break;z=z*L*0.98/rh2;sh.style.setProperty("--pz",z.toFixed(4))}
     if(z>=1)sh.style.setProperty("width",PW+"px","important")}
   // جداول المعلمين في الورقة العمودية: تصغير كل جدول ليتسع في حصته من الورقة
   if(document.body.classList.contains("pall"))document.querySelectorAll("#allT .tpage").forEach(pg=>{const n=+(pg.className.match(/tp(\d)/)||[0,1])[1],avail=(P.port[1]*0.97-(n-1)*10)/n;
@@ -1448,7 +1464,7 @@ const XW=(()=>{
 // أنماط الخلايا المشتركة لملفات التصدير
 const XS={title:{b:1,sz:16,color:"#1f6f5c",wrap:false},sub:{b:1,sz:12,color:"#1d2733",wrap:false},info:{sz:11,color:"#3f4b57",wrap:false},
   head:{b:1,sz:11,color:"#ffffff",fill:"#1f6f5c",border:"thin"},head2:{b:1,sz:10,color:"#1d2733",fill:"#e8efec",border:"thin"},
-  day:{b:1,sz:11,fill:"#e8efec",border:"thin"},cell:{sz:10,border:"thin"},wait:{i:1,sz:10,color:"#4a5866",border:"thin"},
+  day:{b:1,sz:11,fill:"#e8efec",border:"thin"},cell:{sz:10,border:"thin"},wait:{b:1,sz:10,color:"#1d2733",border:"medium"},
   name:{b:1,sz:11,border:"thin",h:"right"},tot:{b:1,sz:11,border:"thin",fill:"#f4f6f8"},sig:{b:1,sz:11,color:"#1f6f5c",wrap:false},off:{fill:"#e9edf0",border:"thin"}};
 const xlFile=t=>`${t}_${(st.school||"المدرسة").replace(/[\\/:*?"<>|]/g,"")}.xlsx`;
 const subjFill=s=>({...XS.cell,fill:s?.c||null});
@@ -1461,7 +1477,7 @@ function xlGenSheet(){const days=activeDays(),N=days.reduce((a,d)=>a+d.count,0),
   h1.push({v:"النصاب",s:XS.head});h2.push({v:"",s:XS.head});mg.push([2,0,3,0],[2,1,3,1],[2,W-1,3,W-1]);rows.push(h1,h2);
   st.teachers.forEach((t,i)=>{const S=teacherSlots(t.id),r=[{v:String(i+1),s:XS.cell},{v:t.n,s:XS.name}];
     for(const d of days)for(let p=0;p<d.count;p++){const k=d.i+"-"+p,L=S[k],wr=waitRank(t.id,k);
-      if(L){const s=subj(L[0].x.sid);r.push({v:`${shortCls(L[0].c)} ${s?.n||""}`,s:subjFill(s)})}else r.push(wr?{v:"م"+wr,s:XS.wait}:{v:"",s:XS.cell})}
+      if(L){const s=subj(L[0].x.sid);r.push({v:`${shortCls(L[0].c)} ${s?.n||""}`,s:subjFill(s)})}else r.push(wr?{v:"(م"+wr+")",s:XS.wait}:{v:"",s:XS.cell})}
     r.push({v:String(teacherLoad(t.id))+(waitCount(t.id)?` + ${waitCount(t.id)}م`:""),s:XS.tot});rows.push(r);hs[rows.length-1]=30});
   rows.push([]);const fr=rows.length,half=Math.floor(W/2);
   const f=[];f[1]={v:`وكيل الشؤون التعليمية: ${st.deputy||"—"}     التوقيع: ................`,s:{...XS.sig,h:"right"}};f[half+1]={v:`مدير المدرسة: ${st.principal||"—"}     التوقيع: ................`,s:{...XS.sig,h:"right"}};
@@ -1480,7 +1496,7 @@ function xlTableSheet(kind,x){const days=activeDays(),max=Math.max(0,...days.map
   const S=kind=="t"?teacherSlots(x.id):null,C=kind=="c"?st.cells[x.id]||{}:null;
   for(const d of days){const r=[{v:ALL_DAYS[d.i],s:XS.day}];
     for(let p=0;p<max;p++){if(p>=d.count){r.push({v:"",s:XS.off});continue}const k=d.i+"-"+p;
-      if(kind=="t"){const L=S[k],wr=waitRank(x.id,k);if(L){const s=subj(L[0].x.sid);r.push({v:`${s?.n||""}\n${L[0].c.n}`,s:subjFill(s)})}else r.push(wr?{v:"انتظار "+wr,s:XS.wait}:{v:"",s:XS.cell})}
+      if(kind=="t"){const L=S[k],wr=waitRank(x.id,k);if(L){const s=subj(L[0].x.sid);r.push({v:`${s?.n||""}\n${L[0].c.n}`,s:subjFill(s)})}else r.push(wr?{v:"(انتظار "+wr+")",s:XS.wait}:{v:"",s:XS.cell})}
       else{const L=[C[k],...extrasAt(x.id,k)].filter(Boolean);if(!L.length){r.push({v:"",s:XS.cell});continue}
         const s=subj(L[0].sid);r.push({v:L.map(e=>{const tt=teacher(cellTeacher(e,x.id));return `${subj(e.sid)?.n||""}${tt?"\n"+tt.n:""}`}).join("\n— — —\n"),s:subjFill(s)})}}
     rows.push(r);hs[rows.length-1]=kind=="c"?44:40}
@@ -1717,7 +1733,8 @@ async function tablesPNG(list){if(!list.length)return null;
         const c=it.cell(d.i,p);g.fillStyle=c?.fill||"#ffffff";g.fillRect(x,y,colW,rowH);if(!c)continue;
         const sz=colW<150?17:20,all=[];
         for(const[t2,main]of c.lines){const f=main?F(700,sz):F(500,sz-4);for(const l of wrap(t2,colW-14,f).slice(0,2))all.push([l,f,main?"#1d2733":"#3f4b57",main?sz+4:sz])}
-        const tot=all.reduce((a,v)=>a+v[3],0);let yy=y+rowH/2-tot/2;for(const[l,f,col,h]of all){text(l,x+colW/2,yy+h/2,f,col);yy+=h}}});
+        const tot=all.reduce((a,v)=>a+v[3],0);let yy=y+rowH/2-tot/2;
+        if(c.ring){g.font=all[0][1];const rw=Math.min(colW-12,g.measureText(all[0][0]).width+34),rh2=Math.min(rowH-16,tot+22);g.strokeStyle="#1d2733";g.lineWidth=2.5;g.beginPath();g.roundRect?g.roundRect(x+colW/2-rw/2,y+rowH/2-rh2/2,rw,rh2,rh2/2):g.ellipse(x+colW/2,y+rowH/2,rw/2,rh2/2,0,0,7);g.stroke()}for(const[l,f,col,h]of all){text(l,x+colW/2,yy+h/2,f,col);yy+=h}}});
     g.strokeStyle="#5d6b7a";g.lineWidth=1.5;const bot=top+headH+days.length*rowH;g.strokeRect(pad,top,W-2*pad,bot-top);
     for(let i=0;i<=days.length;i++){const y=top+headH+i*rowH;g.beginPath();g.moveTo(pad,y);g.lineTo(W-pad,y);g.stroke()}
     for(let p=0;p<=max;p++){const x=xR-dayW-p*colW;g.beginPath();g.moveTo(x,top);g.lineTo(x,bot);g.stroke()}});
@@ -1727,7 +1744,7 @@ async function tablesPNG(list){if(!list.length)return null;
 function imgItem(kind,id){
   if(kind=="t"){const t=teacher(id),S=teacherSlots(id),ld=teacherLoad(id),wn=waitCount(id);
     return{name:t.n,title:`جدول المعلم: ${t.n}`,sub:`النصاب: ${ld} حصة${wn?`   —   الانتظار: ${wn}`:""}`,
-      cell:(d,p)=>{const k=d+"-"+p,L=S[k],wr=waitRank(id,k);if(L){const s=subj(L[0].x.sid);return{fill:s?.c,lines:[[s?.n||"",1],[L[0].c.n,0]]}}return wr?{fill:"#ffffff",lines:[["انتظار "+wr,1]]}:null}}}
+      cell:(d,p)=>{const k=d+"-"+p,L=S[k],wr=waitRank(id,k);if(L){const s=subj(L[0].x.sid);return{fill:s?.c,lines:[[s?.n||"",1],[L[0].c.n,0]]}}return wr?{fill:"#ffffff",ring:1,lines:[["انتظار "+wr,1]]}:null}}}
   const c=cls(id),C=st.cells[id]||{};
   return{name:c.n,title:`جدول الفصل: ${c.n}`,sub:`عدد الحصص: ${Object.keys(C).filter(okSlot).length}`,
     cell:(d,p)=>{const k=d+"-"+p,L=[C[k],...extrasAt(id,k)].filter(Boolean);if(!L.length)return null;const lines=[];
