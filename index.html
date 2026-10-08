@@ -1484,12 +1484,12 @@ function xlGenSheet(){const days=activeDays(),N=days.reduce((a,d)=>a+d.count,0),
   rows.push(f);mg.push([fr,1,fr,half],[fr,half+1,fr,W-1]);
   return{name:"الجدول العام",rows,merges:mg,heights:hs,cols:[5,24,...Array(N).fill(10),9]}}
 // جدول معلم أو فصل: العنوان والبيانات ثم الجدول ثم التوقيعات
-function xlTableSheet(kind,x){const days=activeDays(),max=Math.max(0,...days.map(d=>d.count)),W=max+1,rows=[],mg=[],hs={};
+function xlTableSheet(kind,x){const tOnly=kind=="cn";if(tOnly)kind="c";const days=activeDays(),max=Math.max(0,...days.map(d=>d.count)),W=max+1,rows=[],mg=[],hs={};
   rows.push([{v:st.school||"",s:XS.title}]);mg.push([0,0,0,W-1]);hs[0]=26;
   if(kind=="t"){const ld=teacherLoad(x.id),wn=waitCount(x.id);
     rows.push([{v:`جدول المعلم: ${x.n}`,s:XS.sub}]);mg.push([1,0,1,W-1]);
     rows.push([{v:`النصاب: ${ld} حصة     حصص الانتظار: ${wn}     المجموع: ${ld+wn}`,s:XS.info}]);mg.push([2,0,2,W-1])}
-  else{rows.push([{v:`جدول الفصل: ${x.n}`,s:XS.sub}]);mg.push([1,0,1,W-1]);
+  else{rows.push([{v:`جدول الفصل: ${x.n}${tOnly?" (المعلمون)":""}`,s:XS.sub}]);mg.push([1,0,1,W-1]);
     const n=Object.keys(st.cells[x.id]||{}).filter(okSlot).length;rows.push([{v:`عدد الحصص: ${n}`,s:XS.info}]);mg.push([2,0,2,W-1])}
   rows.push([]);
   rows.push([{v:"اليوم",s:XS.head},...Array.from({length:max},(_,p)=>({v:"الحصة "+ORD[p],s:XS.head}))]);hs[rows.length-1]=22;
@@ -1498,6 +1498,7 @@ function xlTableSheet(kind,x){const days=activeDays(),max=Math.max(0,...days.map
     for(let p=0;p<max;p++){if(p>=d.count){r.push({v:"",s:XS.off});continue}const k=d.i+"-"+p;
       if(kind=="t"){const L=S[k],wr=waitRank(x.id,k);if(L){const s=subj(L[0].x.sid);r.push({v:`${s?.n||""}\n${L[0].c.n}`,s:subjFill(s)})}else r.push(wr?{v:"(انتظار "+wr+")",s:XS.wait}:{v:"",s:XS.cell})}
       else{const L=[C[k],...extrasAt(x.id,k)].filter(Boolean);if(!L.length){r.push({v:"",s:XS.cell});continue}
+        if(tOnly){r.push({v:L.map(e=>teacher(cellTeacher(e,x.id))?.n||"").filter(Boolean).join("\n— — —\n"),s:{...XS.cell,b:1,sz:11}});continue}
         const s=subj(L[0].sid);r.push({v:L.map(e=>{const tt=teacher(cellTeacher(e,x.id));return `${subj(e.sid)?.n||""}${tt?"\n"+tt.n:""}`}).join("\n— — —\n"),s:subjFill(s)})}}
     rows.push(r);hs[rows.length-1]=kind=="c"?44:40}
   rows.push([]);const fr=rows.length,f=[];
@@ -1508,6 +1509,7 @@ function xlTableSheet(kind,x){const days=activeDays(),max=Math.max(0,...days.map
 const xlOpt=()=>({flip:!!st.xlFlip});
 function exportGenXlsx(){XW.download(xlFile("الجدول_العام"),[xlGenSheet()],xlOpt());toast("صُدّر الجدول العام")}
 function exportTeachersXlsx(){if(!st.teachers.length){toast("لا يوجد معلمون");return}XW.download(xlFile("جداول_المعلمين"),st.teachers.map(t=>xlTableSheet("t",t)),xlOpt());toast(`صُدّرت جداول ${st.teachers.length} معلمًا، ورقة لكل معلم`)}
+function exportClassesTXlsx(){if(!st.classes.length){toast("لا توجد فصول");return}XW.download(xlFile("جداول_الفصول_المعلمين"),st.classes.map(c=>xlTableSheet("cn",c)),xlOpt());toast(`صُدّرت جداول ${st.classes.length} فصول بأسماء المعلمين فقط`)}
 function exportClassesXlsx(){if(!st.classes.length){toast("لا توجد فصول");return}XW.download(xlFile("جداول_الفصول"),st.classes.map(c=>xlTableSheet("c",c)),xlOpt());toast(`صُدّرت جداول ${st.classes.length} فصول، ورقة لكل فصل`)}
 // ملف واحد يجمع الجدول العام وجداول المعلمين ثم جداول الفصول، كل جدول في ورقة باسمه
 function exportAllXlsx(){XW.download(xlFile("جداول_المدرسة"),[xlGenSheet(),...st.teachers.map(t=>xlTableSheet("t",t)),...st.classes.map(c=>xlTableSheet("c",c))],xlOpt());
@@ -1519,6 +1521,7 @@ $("bXl").onclick=()=>{let mode="gen",opt={replace:true,nisab:true,order:true};
     if(t.id=="xlExGen")exportGenXlsx();
     if(t.id=="xlExT")exportTeachersXlsx();
     if(t.id=="xlExC")exportClassesXlsx();
+    if(t.id=="xlExCT")exportClassesTXlsx();
     if(t.id=="xlExAll")exportAllXlsx();
     if(t.id=="xlFlip"){st.xlFlip=t.checked;save()}});
   const box=w.querySelector(".box");
@@ -1530,7 +1533,7 @@ $("bXl").onclick=()=>{let mode="gen",opt={replace:true,nisab:true,order:true};
     <p class="note">بعد اختيار الملف يظهر ملخص بما سيُستورد قبل التطبيق. يُنشأ المعلمون والمواد غير الموجودة، وتُحدَّث الإسنادات، ثم ينعكس ذلك على الجدول العام وجداول الفصول وجداول المعلمين.</p>
     <p class="sub">تصدير (ويصلح نموذجًا للاستيراد)</p>
     <div class="actions"><button class="primary" id="xlExAll">تصدير الكل في ملف واحد (ورقة لكل معلم وورقة لكل فصل)</button></div>
-    <div class="actions"><button id="xlExGen">تصدير الجدول العام</button><button id="xlExT">تصدير جداول المعلمين (ورقة لكل معلم)</button><button id="xlExC">تصدير جداول الفصول (ورقة لكل فصل)</button></div>
+    <div class="actions"><button id="xlExGen">تصدير الجدول العام</button><button id="xlExT">تصدير جداول المعلمين (ورقة لكل معلم)</button><button id="xlExC">تصدير جداول الفصول (ورقة لكل فصل)</button><button id="xlExCT">تصدير جداول الفصول بأسماء المعلمين فقط</button></div>
     <p class="note">تُصدَّر الملفات بحدود واضحة وألوان المواد، وفي كل ورقة اسم المدرسة والعنوان والتوقيعات، وفي جداول المعلمين النصاب وحصص الانتظار. والورقة مهيأة للطباعة في صفحة واحدة، واتجاهها من اليمين فتكون الأيام في العمود الأيمن.</p>
     <label class="checks"><span><input type="checkbox" id="xlFlip" ${st.xlFlip?"checked":""}> ترتيب الأعمدة من اليمين يدويًا (لبرامج الجوال التي تعرض الورقة من اليسار)</span></label>
     <div class="actions"><button data-close>إغلاق</button></div>`;
