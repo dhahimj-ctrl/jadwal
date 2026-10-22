@@ -1240,8 +1240,8 @@ $("bWait").onclick=()=>{
   draw();
 };
 
-/* ===== الأرشيف: حتى ثلاث نسخ مسماة ومؤرخة من الجداول ===== */
-const ARCH_MAX=3;
+/* ===== الأرشيف: حتى خمس نسخ مسماة ومؤرخة من الجداول ===== */
+const ARCH_MAX=5;
 function archStats(d){let placed=0;for(const c of st.classes)placed+=Object.keys(d.cells?.[c.id]||{}).length;
   let need=0;for(const c of st.classes)for(const s of st.subjects)need+=W(s,c.id);return{placed,miss:Math.max(0,need-placed),waits:Object.keys(d.wslots||{}).length,ok:!!d.approved}}
 function fmtDate(iso){const d=new Date(iso);try{return d.toLocaleDateString("ar-SA",{day:"numeric",month:"long",year:"numeric"})+"هـ — "+d.toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long",year:"numeric"})+"م — "+d.toLocaleTimeString("ar-SA",{hour:"numeric",minute:"2-digit"})}catch(_){return d.toLocaleString()}}
@@ -1273,7 +1273,7 @@ $("bArch").onclick=()=>{
   const w=modal("",(e,w)=>{const t=e.target,id=t.closest("[data-aid]")?.dataset.aid,a=st.archive.find(x=>x.id==id);
     if(t.id=="arSave"||t.dataset.rep!=null){const name=cleanName($("arName").value)||`نسخة ${new Date().toLocaleDateString("ar-SA")}`;
       if(t.dataset.rep!=null){arm(t,"تأكيد الاستبدال؟",()=>{Object.assign(a,{name,at:new Date().toISOString(),data:curData()});save();draw();toast(`حُفظت النسخة الحالية مكان «${a.name}»`)});return}
-      if(st.archive.length>=ARCH_MAX){toast("الأرشيف ممتلئ (3 نسخ). استبدل نسخة أو احذف واحدة");return}
+      if(st.archive.length>=ARCH_MAX){toast(`الأرشيف ممتلئ (${ARCH_MAX} نسخ). استبدل نسخة أو احذف واحدة`);return}
       st.archive.push({id:uid("ar"),name,at:new Date().toISOString(),data:curData()});save();draw();toast(`حُفظت «${name}» في الأرشيف`);return}
     if(t.dataset.view!=null){archPreview(a);return}
     if(t.dataset.restore!=null)arm(t,"تأكيد الاستعادة؟",()=>{snap(`استعادة «${a.name}»`);const d=JSON.parse(JSON.stringify(a.data));
