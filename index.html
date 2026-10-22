@@ -951,7 +951,7 @@ function evalSlot(s,tid,d,p){
   const k=d+"-"+p,C=cells(),hard=[],soft=[];
   if(C[k])hard.push("الخانة مشغولة");
   if(tid){const b=busy(k)[tid];if(b)hard.push("المعلم مشغول في "+b);else{const w=canPlace(tid,d,p,{cid:st.cur,k});if(w)soft.push(w)}}
-  if(!sameDayOK(C,s.id,d,p,dailyCap(s),dblNeed(s.id,st.cur)))soft.push("تتكرر المادة في هذا اليوم");
+  if(!sameDayOK(C,s.id,d,p,dailyCap(s),dblNeed(s.id,st.cur),heavyExt(s)))soft.push("تتكرر المادة في هذا اليوم");
   return{hard,soft};
 }
 function placeOptions(s){
@@ -2073,7 +2073,7 @@ function swapCheck(k1,k2){
     const tid=cellTeacher(x,st.cur),[d,p]=k.split("-").map(Number),tn=teacher(tid)?.n;
     out.moves.push(`${s.n}${tn?" ("+tn+")":""}: من ${slotName(from)} إلى ${slotName(k)}`);
     if(tid){const bz=busy(k)[tid];if(bz)out.hard.push(`${tn} مشغول في ${bz} (${slotName(k)})`);else{const w=canPlace(tid,d,p,{cid:st.cur,k});if(w)out.soft.push(`${tn}: ${w} (${ALL_DAYS[d]})`)}}
-    if(!sameDayOK(C,s.id,d,p,dailyCap(s),dblNeed(s.id,st.cur)))out.soft.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]}`);
+    if(!sameDayOK(C,s.id,d,p,dailyCap(s),dblNeed(s.id,st.cur),heavyExt(s)))out.soft.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]}`);
   }
   delete C[k1];delete C[k2];if(a)C[k1]=a;if(b)C[k2]=b;
   return out;
@@ -2227,7 +2227,7 @@ document.addEventListener("pointerup",e=>{if(!drag)return;const d=drag;drag=null
 // إيجاد خانة فارغة مناسبة لحصة في فصلها (للحصة المُزاحة عند «الإدراج بدون حذف»)
 function findSpot(cid,x,avoid){let fb=null;const t=cellTeacher(x,cid),s=subj(x.sid);
   for(const d of activeDays())for(let p=0;p<d.count;p++){const k=d.i+"-"+p;if(k==avoid||st.cells[cid][k])continue;if(t&&(teachingAt(t,k)||excludedAt(t,k)))continue;
-    const cur=st.cur;st.cur=cid;const w=t?canPlace(t,d.i,p,{cid,k}):"";st.cur=cur;const ok=s?sameDayOK(st.cells[cid],s.id,d.i,p,dailyCap(s,cid),dblNeed(s.id,cid)):true;
+    const cur=st.cur;st.cur=cid;const w=t?canPlace(t,d.i,p,{cid,k}):"";st.cur=cur;const ok=s?sameDayOK(st.cells[cid],s.id,d.i,p,dailyCap(s,cid),dblNeed(s.id,cid),heavyExt(s,cid)):true;
     if(!w&&ok)return k;if(!fb)fb=k}
   return fb}
 // إفلات حصة غير مدرجة في خانة من صف معلم
@@ -2281,7 +2281,7 @@ function simulate(apply,moved){const J=JSON.stringify(st.cells),cur=st.cur,res={
     for(const[c,k]of moved){const x=st.cells[c]?.[k];if(!x)continue;const t=cellTeacher(x,c),s=subj(x.sid),[d,p]=k.split("-").map(Number);
       if(t){for(const c2 of st.classes){if(c2.id==c)continue;const o=st.cells[c2.id]?.[k];if(o&&cellTeacher(o,c2.id)==t)res.hard.push(`${teacher(t)?.n} مشغول في ${c2.n} (${slotName(k)})`)}
         st.cur=c;const w=canPlace(t,d,p,{cid:c,k});if(w)res.soft.push(`${teacher(t)?.n}: ${w}`)}
-      if(s&&!sameDayOK(st.cells[c],s.id,d,p,dailyCap(s,c),dblNeed(s.id,c)))res.soft.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]} (${cls(c)?.n})`)}}
+      if(s&&!sameDayOK(st.cells[c],s.id,d,p,dailyCap(s,c),dblNeed(s.id,c),heavyExt(s,c)))res.soft.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]} (${cls(c)?.n})`)}}
   finally{st.cells=JSON.parse(J);st.cur=cur}
   return res}
 // إزالة السبب العام «لا يمكن» عند وجود سبب أوضح
@@ -2296,7 +2296,7 @@ function chainSolve(cid0,x0,from,k2,max=4){
   const slots=[];for(const d of activeDays())for(let p=0;p<d.count;p++)slots.push(d.i+"-"+p);
   const softOf=(cid,x,k)=>{const t=tOf(cid,x),s=subj(x.sid),[d,p]=k.split("-").map(Number),o=[];st.cur=cid;
     if(t){const w=canPlace(t,d,p,{cid,k});if(w)o.push(`${teacher(t)?.n||""}: ${w}`)}
-    if(s&&!sameDayOK(W[cid],s.id,d,p,dailyCap(s,cid),dblNeed(s.id,cid)))o.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]} (${cls(cid)?.n||""})`);return o};
+    if(s&&!sameDayOK(W[cid],s.id,d,p,dailyCap(s,cid),dblNeed(s.id,cid),heavyExt(s,cid)))o.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]} (${cls(cid)?.n||""})`);return o};
   try{st.cells=W;
     if(from&&from.k&&!from.ex)delete W[cid0][from.k];
     const T0=tOf(cid0,x0),y=W[cid0][k2],zc=tBusy(T0,k2),z=zc&&zc!=cid0?W[zc][k2]:null;
@@ -2340,7 +2340,7 @@ function chainEval(mv){const J=JSON.stringify(st.cells),cur=st.cur,r={hard:[],so
     for(const m of mv){const x=st.cells[m.cid][m.to],t=cellTeacher(x,m.cid),s=subj(x.sid),[d,p]=m.to.split("-").map(Number);
       if(t){for(const c2 of st.classes){if(c2.id==m.cid)continue;const o=st.cells[c2.id]?.[m.to];if(o&&cellTeacher(o,c2.id)==t)r.hard.push(`${teacher(t)?.n} مشغول في ${c2.n} (${slotName(m.to)})`)}
         st.cur=m.cid;const w=canPlace(t,d,p,{cid:m.cid,k:m.to});if(w)r.soft.push(`${teacher(t)?.n}: ${w}`)}
-      if(s&&!sameDayOK(st.cells[m.cid],s.id,d,p,dailyCap(s,m.cid),dblNeed(s.id,m.cid)))r.soft.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]} (${cls(m.cid)?.n})`)}}
+      if(s&&!sameDayOK(st.cells[m.cid],s.id,d,p,dailyCap(s,m.cid),dblNeed(s.id,m.cid),heavyExt(s,m.cid)))r.soft.push(`تتكرر ${s.n} يوم ${ALL_DAYS[d]} (${cls(m.cid)?.n})`)}}
   finally{st.cells=JSON.parse(J);st.cur=cur}
   r.soft=[...new Set(r.soft)];return r}
 const chainDesc=mv=>mv.map(m=>`${subj(m.x.sid)?.n||""} — ${shortCls(cls(m.cid))} (${teacher(cellTeacher(m.x,m.cid))?.n||"بدون معلم"}): ${m.from?`من ${slotName(m.from)} `:""}إلى ${slotName(m.to)}`);
@@ -2590,9 +2590,16 @@ function dblDeficits(){const out=[];for(const a of st.assign){if(!a.dbl)continue
   const need=Math.floor(W(s,c.id)/2);if(!need)continue;const n=activeDays().reduce((x,d)=>x+(pairsIn(st.cells[c.id]||{},a.sid,d.i)?1:0),0);if(n<need)out.push({a,s,c,n,need})}return out}
 function pairsIn(C,sid,d){let n=0;for(let q=0;q+1<st.days[d].count;q++)if(C[d+"-"+q]?.sid==sid&&C[d+"-"+(q+1)]?.sid==sid){n++;q++}return n}
 // هل يُسمح بالمادة في هذا اليوم؟ حصة واحدة في اليوم، إلا لمادة نصابها أكبر من الأيام، أو حصة ثانية ملاصقة لتكوين مزدوجة مطلوبة
-function sameDayOK(C,sid,d,p,cap,dbl){let n=0,adj=false;for(let q=0;q<st.days[d].count;q++)if(q!=p&&C[d+"-"+q]?.sid==sid){n++;if(Math.abs(q-p)==1)adj=true}
+function sameDayOK(C,sid,d,p,cap,dbl,ext){let n=0,adj=false;for(let q=0;q<st.days[d].count;q++)if(q!=p&&C[d+"-"+q]?.sid==sid){n++;if(Math.abs(q-p)==1)adj=true}
+  // توزيع متساوٍ للمادة التي حصصها أكثر من الأيام: يتكرر الفصل في عدد محدود من الأيام فقط (مثل 6 حصص في 5 أيام: يوم واحد بحصتين وبقية الأيام حصة)
+  if(ext&&!dbl&&cap>1){if(n>=cap)return false;if(n+1<cap)return true;let h=0;for(const x of activeDays())if(x.i!=d&&subjDayN(C,sid,x.i)>=cap)h++;return h<ext}
   if(n<cap)return true;if(!dbl||cap!=1||n!=1||!adj)return false;
   let dd=0;for(const x of activeDays())if(x.i!=d&&pairsIn(C,sid,x.i))dd++;return dd<dbl}
+function subjDayN(C,sid,d){let n=0;for(let q=0;q<st.days[d].count;q++)if(C[d+"-"+q]?.sid==sid)n++;return n}
+// عدد الأيام المسموح أن تتكرر فيها المادة (حصتان) عند زيادة حصصها عن عدد الأيام؛ 0 = لا قيد إضافي
+function heavyExt(s,cid=st.cur){const n=activeDays().length||1,w=W(s,cid);if(w<=n)return 0;return w%n}
+// هل لدى المعلم فصل آخر تتكرر فيه مادته في هذا اليوم؟ (يُفضَّل أن تكون أيام التكرار مختلفة بين فصول المعلم)
+function tHeavyOn(t,d,exceptCid){if(!t)return 0;let n=0;for(const a of st.assign){if(a.tid!=t||a.cid==exceptCid)continue;const s=subj(a.sid);if(!s||!heavyExt(s,a.cid))continue;if(subjDayN(st.cells[a.cid]||{},a.sid,d)>=dailyCap(s,a.cid))n++}return n}
 function dailyCap(s,cid=st.cur){const n=activeDays().length||1,w=W(s,cid);return w<=n?1:Math.ceil(w/n)}
 function autoFill(silent){if(!silent)resolveClashes(true,true);
   const C=cells(),u=used(),days=activeDays();
@@ -2601,7 +2608,7 @@ function autoFill(silent){if(!silent)resolveClashes(true,true);
   while(rem.some(x=>x.r>0)){rem.sort((a,b)=>b.r-a.r);for(const x of rem)if(x.r>0){units.push(x.s);x.r--}}
   const onDay=(sid,d)=>{let n=0;for(let p=0;p<st.days[d].count;p++)if(C[d+"-"+p]?.sid==sid)n++;return n};
   const filled=d=>{let n=0;for(let p=0;p<st.days[d].count;p++)if(C[d+"-"+p])n++;return n};
-  const fits=(s,d,p)=>{if(C[d+"-"+p])return false;if(!sameDayOK(C,s.id,d,p,dailyCap(s),dblNeed(s.id,st.cur)))return false;
+  const fits=(s,d,p)=>{if(C[d+"-"+p])return false;if(!sameDayOK(C,s.id,d,p,dailyCap(s),dblNeed(s.id,st.cur),heavyExt(s)))return false;
     const at=assigned(s.id,st.cur);return !at||(!busy(d+"-"+p)[at]&&!canPlace(at,d,p))};
   // المواد المزدوجة: تُوضع أزواجها المتتالية أولًا
   let prePlaced=0;
@@ -2612,7 +2619,8 @@ function autoFill(silent){if(!silent)resolveClashes(true,true);
   function best(s){
     const at=assigned(s.id,st.cur),wantFirst=firstNeed(at)>0;let b=null,bs=1e9;
     for(const d of days)for(let p=0;p<d.count;p++){if(!fits(s,d.i,p))continue;
-      const sc=onDay(s.id,d.i)*100+filled(d.i)*10+(wantFirst&&p==0?-50:p*0.5)-dayNeed(at,d.i)*40+Math.random();
+      const hv=heavyExt(s)&&onDay(s.id,d.i)+1>=dailyCap(s)?tHeavyOn(at,d.i,st.cur)*60:0;
+      const sc=hv+onDay(s.id,d.i)*100+filled(d.i)*10+(wantFirst&&p==0?-50:p*0.5)-dayNeed(at,d.i)*40+Math.random();
       if(sc<bs){bs=sc;b=[d.i,p]}}
     return b;
   }
@@ -2641,10 +2649,10 @@ function makeSolver(fresh){
   const SS={};st.subjects.forEach(s=>SS[s.id]=s);
   const RT_={};st.rules.forEach(r=>r.tids.forEach(t=>(RT_[t]=RT_[t]||[]).push(r)));
   const tOf=(x,cid)=>x.tid||asg[x.sid+"|"+cid]||"";
-  const tOcc={},need={},cap={},dbl={},DB=[];
+  const tOcc={},need={},cap={},dbl={},DB=[],ext={},HV=[];
   const valid=k=>{const[d,p]=k.split("-").map(Number);return st.days[d]?.on&&p<st.days[d].count};
   for(const c of st.classes){need[c.id]={};cap[c.id]={};
-    for(const s of st.subjects){need[c.id][s.id]=W(s,c.id);cap[c.id][s.id]=dailyCap(s,c.id);const v=W(s,c.id)>=2?dblNeed(s.id,c.id,asg):0;if(v){dbl[c.id+"|"+s.id]=Math.min(v,Math.floor(W(s,c.id)/2));DB.push([c.id,s.id])}}
+    for(const s of st.subjects){need[c.id][s.id]=W(s,c.id);cap[c.id][s.id]=dailyCap(s,c.id);const e=heavyExt(s,c.id);if(e&&!dblNeed(s.id,c.id)){ext[c.id+"|"+s.id]=e;const t=asg[s.id+"|"+c.id];if(t)HV.push([c.id,s.id,t])}const v=W(s,c.id)>=2?dblNeed(s.id,c.id,asg):0;if(v){dbl[c.id+"|"+s.id]=Math.min(v,Math.floor(W(s,c.id)/2));DB.push([c.id,s.id])}}
     for(const[k,x]of Object.entries(C[c.id])){if(!valid(k)){continue}need[c.id][x.sid]=(need[c.id][x.sid]||0)-1;const t=tOf(x,c.id);if(t)(tOcc[t]=tOcc[t]||{})[k]=c.id}}
   let journal=null;
   const put=(cid,k,x)=>{if(journal)journal.push([cid,k,C[cid][k]]);C[cid][k]=x;need[cid][x.sid]--;const t=tOf(x,cid);if(t)(tOcc[t]=tOcc[t]||{})[k]=cid};
@@ -2666,17 +2674,20 @@ function makeSolver(fresh){
   const minNeed=(t,d)=>{let n=0;for(const[t2,d2,v]of MINR)if(t2==t&&d2==d)n=Math.max(n,v-dayPs(t,d).length);return n};
   const subjOnDay=(cid,sid,d)=>{let n=0;for(let p=0;p<st.days[d].count;p++)if(C[cid][d+"-"+p]?.sid==sid)n++;return n};
   const filledOnDay=(cid,d)=>{let n=0;for(let p=0;p<st.days[d].count;p++)if(C[cid][d+"-"+p])n++;return n};
-  function fits(cid,x,d,p){const k=d+"-"+p;if(C[cid][k])return false;if(!sameDayOK(C[cid],x.sid,d,p,cap[cid][x.sid]||1,dbl[cid+"|"+x.sid]||0))return false;
+  function fits(cid,x,d,p){const k=d+"-"+p;if(C[cid][k])return false;if(!sameDayOK(C[cid],x.sid,d,p,cap[cid][x.sid]||1,dbl[cid+"|"+x.sid]||0,ext[cid+"|"+x.sid]||0))return false;
     const t=tOf(x,cid);if(t){if(tOcc[t]?.[k])return false;if(!ruleOK(t,d,p))return false}return true}
   function bestSlot(cid,x){let b=null,bs=1e9;for(const[d,p]of slots){if(!fits(cid,x,d,p))continue;
-    const t=MINR.length?tOf(x,cid):"",sc=subjOnDay(cid,x.sid,d)*100+filledOnDay(cid,d)*6+p*.3+Math.random()*8-(t?minNeed(t,d)*30:0);if(sc<bs){bs=sc;b=d+"-"+p}}return b}
+    const t=MINR.length?tOf(x,cid):"",sc=subjOnDay(cid,x.sid,d)*100+filledOnDay(cid,d)*6+p*.3+Math.random()*8-(t?minNeed(t,d)*30:0)+(ext[cid+"|"+x.sid]&&subjOnDay(cid,x.sid,d)+1>=cap[cid][x.sid]?hvOn(tOf(x,cid),d,cid)*60:0);if(sc<bs){bs=sc;b=d+"-"+p}}return b}
   let pairsAfterPhase1=0;const totalPairs=DB.reduce((a,[cid,sid])=>a+dbl[cid+"|"+sid],0);
   // في وضع «إكمال»: حصص المواد المزدوجة المنفردة تُرفع أولًا لتُوزَّع أزواجًا قبل غيرها
   if(!fresh)for(const[cid,sid]of DB){const want=dbl[cid+"|"+sid];let have=0;for(const d of days)if(pairsIn(C[cid],sid,d.i))have++;if(have>=want)continue;
     for(const d of days){if(pairsIn(C[cid],sid,d.i))continue;for(let p=0;p<d.count;p++){const k=d.i+"-"+p;if(C[cid][k]?.sid==sid&&!C[cid][k].lock){const x=C[cid][k];delete C[cid][k];need[cid][sid]++;const t=tOf(x,cid);if(t&&tOcc[t])delete tOcc[t][k]}}}}
   const pairCount=(cid,sid)=>days.reduce((a,d)=>a+(pairsIn(C[cid],sid,d.i)?1:0),0);
   const deficit=()=>{let n=0;for(const[cid,sid]of DB)n+=Math.max(0,dbl[cid+"|"+sid]-pairCount(cid,sid));return n};
-  const score=()=>missingCount()*10+deficit()*15+(MINR.length?minDef()*4:0);
+  // تكرار فصلين للمعلم نفسه في اليوم نفسه (هدف مرن)
+  const heavyPen=()=>{if(HV.length<2)return 0;const m={};for(const[cid,sid,t]of HV){const cp=cap[cid][sid];for(const d of days)if(subjDayN(C[cid],sid,d.i)>=cp){const k=t+"|"+d.i;m[k]=(m[k]||0)+1}}let n=0;for(const v of Object.values(m))if(v>1)n+=v-1;return n};
+  const hvOn=(t,d,cid)=>{let n=0;for(const[c2,s2,t2]of HV)if(t2==t&&c2!=cid&&subjDayN(C[c2],s2,d)>=cap[c2][s2])n++;return n};
+  const score=()=>missingCount()*10+deficit()*15+(MINR.length?minDef()*4:0)+heavyPen()*3;
   const missingCount=()=>{let n=0;for(const c of st.classes)for(const s of st.subjects){const v=need[c.id][s.id];if(v>0)n+=v}return n};
   const missingList=()=>{const L=[];for(const c of st.classes)for(const s of st.subjects){const v=need[c.id][s.id];for(let i=0;i<v;i++)L.push([c.id,s.id])}return L};
   // التوزيع الأولي: المواد ذات المعلمين الأكثر نصابًا أولًا
@@ -2702,10 +2713,10 @@ function makeSolver(fresh){
     return false}
   // خطوة تحسين: إدراج حصة ناقصة في خانة مع إزاحة ما يعيقها ثم إعادة وضع المُزاح
   // تبديل عشوائي بين حصتين في فصل واحد (إن كان مسموحًا) لتنويع الترتيب وفتح أماكن جديدة
-  function shuffleMove(){const c=st.classes[Math.floor(Math.random()*st.classes.length)].id,sc0=MINR.length?score():DB.length?deficit():0;
+  function shuffleMove(){const c=st.classes[Math.floor(Math.random()*st.classes.length)].id,useS=MINR.length||HV.length>1,sc0=useS?score():DB.length?deficit():0;
     const[d1,p1]=slots[Math.floor(Math.random()*slots.length)],[d2,p2]=slots[Math.floor(Math.random()*slots.length)],k1=d1+"-"+p1,k2=d2+"-"+p2;if(k1==k2||LK(c,k1)||LK(c,k2))return;
     journal=[];const a=take(c,k1),b=take(c,k2);if(!a&&!b){journal=null;return}
-    if((!b||fits(c,b,d1,p1))&&(b&&put(c,k1,b),true)&&(!a||fits(c,a,d2,p2))){if(a)put(c,k2,a);if(MINR.length?score()>sc0:(DB.length&&deficit()>sc0))rollback();else journal=null}else rollback()}
+    if((!b||fits(c,b,d1,p1))&&(b&&put(c,k1,b),true)&&(!a||fits(c,a,d2,p2))){if(a)put(c,k2,a);if(useS?score()>sc0:(DB.length&&deficit()>sc0))rollback();else journal=null}else rollback()}
   // حركة الحد الأدنى اليومي: نقل حصة للمعلم من يوم آخر إلى يوم ينقصه (مع تبديل حصة الفصل في الخانة الهدف)
   function minMove(){const L=MINR.filter(([t,d,v])=>dayPs(t,d).length<v);if(!L.length)return false;
     const[t,d]=L[Math.floor(Math.random()*L.length)],o=tOcc[t]||{},src=Object.keys(o).filter(k=>+k.split("-")[0]!=d&&!LK(o[k],k));if(!src.length)return true;
@@ -2741,7 +2752,10 @@ function makeSolver(fresh){
     const before=score();journal=[];const ev=[];
     const a=take(cid,k);if(a)ev.push([cid,a]);
     if(t&&tOcc[t]?.[k]){const c2=tOcc[t][k],y=take(c2,k);if(y)ev.push([c2,y])}
-    if(!sameDayOK(C[cid],sid,d,p,cap[cid][sid]||1,dbl[cid+"|"+sid]||0)){for(let q=0;q<st.days[d].count;q++){const kk=d+"-"+q;if(C[cid][kk]?.sid==sid&&!C[cid][kk].lock){ev.push([cid,take(cid,kk)]);break}}}
+    const sdo=()=>sameDayOK(C[cid],sid,d,p,cap[cid][sid]||1,dbl[cid+"|"+sid]||0,ext[cid+"|"+sid]||0);
+    if(!sdo()){for(let q=0;q<st.days[d].count;q++){const kk=d+"-"+q;if(C[cid][kk]?.sid==sid&&!C[cid][kk].lock){ev.push([cid,take(cid,kk)]);break}}}
+    // إن كان المانع تكرار المادة في يوم آخر: تُرفع حصة من ذلك اليوم لتُوضع في يوم لا تتكرر فيه
+    if(!sdo()&&ext[cid+"|"+sid]){const cp=cap[cid][sid];outer2:for(const dd of days){if(dd.i==d||subjDayN(C[cid],sid,dd.i)<cp)continue;for(let q=0;q<dd.count;q++){const kk=dd.i+"-"+q;if(C[cid][kk]?.sid==sid&&!C[cid][kk].lock){ev.push([cid,take(cid,kk)]);break outer2}}}}
     if(!fits(cid,x,d,p)){rollback();return score()}
     put(cid,k,x);
     for(const[c2,y]of ev)placeChain(c2,y,2);
@@ -2759,7 +2773,7 @@ function makeSolver(fresh){
   const restore=j=>{for(const[id,v]of JSON.parse(j))st.cells[id]=v};
   // قيود ثابتة لا تتغير بالإزاحة (الحصص المستثناة)
   function ruleOK2(t,d,p){const R=RT_[t];if(!R)return true;const k=d+"-"+p;return !R.some(r=>r.type=="exclude"&&r.slots.includes(k))}
-  return{greedy,step,missingCount,deficit,minDef,hasMin:MINR.length>0,score,setTemp,snapshot,restore,totalPairs,phase1:()=>pairsAfterPhase1};
+  return{greedy,step,missingCount,deficit,minDef,heavyPen,hasMin:MINR.length>0,score,setTemp,snapshot,restore,totalPairs,phase1:()=>pairsAfterPhase1};
 }
 function runSmartFill(fresh){
   document.querySelectorAll(".dlg").forEach(d=>d.remove());
