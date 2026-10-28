@@ -427,6 +427,8 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
 .tblock table.dtab td .s{font-size:11px;line-height:1.15}.tblock table.dtab td .t{font-size:9.5px;margin:0;line-height:1.1}
 .tblock table.dtab.w td{font-size:12px;font-weight:700;height:36px}
 .tblock .dayname{font-size:120%;color:#1f6f5c}
+body.pm.nosj table.gen td .sj{display:none}body.pm.nosj table.gen td .c{font-size:12px}
+@media print{body.nosj table.gen td .sj{display:none}body.nosj table.gen td .c{font-size:12px}}
 .dp .tfoot{gap:12px;font-size:10.5px}.dp .tfoot>div{white-space:nowrap}.dp.tp3 .tfoot,.dp.tp4 .tfoot,.dp.tp5 .tfoot{font-size:9.5px}.dp.tp1 .tfoot{margin-top:12px}
 .tblock.grow table.dtab td{height:var(--drh)!important}
 .tblock.grow.big table.dtab td .s{font-size:13px}.tblock.grow.big table.dtab td .t{font-size:11px}.tblock.grow.big table.dtab tbody th{font-size:13px}
@@ -742,6 +744,7 @@ function printChooser(kind){
     <p class="note">مقاس الورق:</p><div class="seg tpn">${["A4","A3"].map(x=>`<button data-pp="${x}" class="${(st.paper||"A4")==x?"on":""}">${x}</button>`).join("")}</div>
     ${dk?`<p class="note">اليوم:</p><div class="seg tpk">${[["all","كامل الأسبوع"],...ad().map(i=>[String(i),ALL_DAYS[i]])].map(([v,l])=>`<button data-day="${v}" class="${String(day)==v?"on":""}">${l}</button>`).join("")}</div>`:""}
     ${kind!="w"?`<p class="note">ألوان الخلفية في الجداول:</p><div class="seg tpn"><button data-bg="1" class="${st.pNoBg?"":"on"}">ملوّنة</button><button data-bg="0" class="${st.pNoBg?"on":""}">بدون ألوان</button></div>`:""}
+    ${kind=="cur"&&isGen?`<p class="note">محتوى الخانات:</p><div class="seg tpn"><button data-ns="0" class="${st.pNoSubj?"":"on"}">الفصل مع المادة</button><button data-ns="1" class="${st.pNoSubj?"on":""}">الفصول فقط</button></div>`:""}
     ${kind=="dc"||kind=="dt"?`<p class="note">محتوى الخانات:</p><div class="seg tpn"><button data-ns="0" class="${st.pNoSubj?"":"on"}">مع أسماء المواد</button><button data-ns="1" class="${st.pNoSubj?"on":""}">${kind=="dc"?"أسماء المعلمين فقط":"الفصول فقط"}</button></div>`:""}
     ${kind=="cur"?`<p class="note">${isGen?`يُطبع الجدول العام في ورقة ${st.paper||"A4"} أفقية واحدة مع التوقيعات، ويملأ الصفحة طولًا وعرضًا. اختر المقاس نفسه في نافذة الطباعة.`:"يُطبع الجدول المعروض حاليًا."}</p>`:`
     <p class="note">ورق ${st.paper||"A4"} عمودي. عدد الجداول في كل ورقة:</p>
@@ -759,7 +762,7 @@ const PAPER={A4:{land:[1047,718],port:[733,1062]},A3:{land:[1512,1047],port:[106
 let printPortrait=false;
 function setPage(portrait){printPortrait=!!portrait;const P=st.paper=="A3"?"A3":"A4";let el=$("pgSize");if(!el){el=document.createElement("style");el.id="pgSize";document.head.appendChild(el)}
   el.textContent=`@page{size:${P} ${portrait?"portrait":"landscape"};margin:${portrait?8:10}mm}`;document.documentElement.style.setProperty("--tpw",PAPER[P].port[0]+"px")}
-function fitPrint(){const P=PAPER[st.paper=="A3"?"A3":"A4"],[PW,PH]=P.land;if(!printPortrait)setPage(false);document.body.classList.add("pm");document.body.classList.toggle("nobgp",!!st.pNoBg);
+function fitPrint(){const P=PAPER[st.paper=="A3"?"A3":"A4"],[PW,PH]=P.land;if(!printPortrait)setPage(false);document.body.classList.add("pm");document.body.classList.toggle("nobgp",!!st.pNoBg);document.body.classList.toggle("nosj",!!st.pNoSubj);
   const sheets=document.body.classList.contains("pall")?[...document.querySelectorAll("#allT .sheet")]:[document.querySelector(".stage .sheet")];
   document.querySelectorAll(".sheet.fitone").forEach(x=>{x.classList.remove("fitone");x.style.removeProperty("--pz");x.style.removeProperty("--rh");x.classList.remove("bigr");x.style.removeProperty("width")});
   const H=PH*0.95,HG=PH*0.985;
