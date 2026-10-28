@@ -426,6 +426,9 @@ table.mini td.vac{outline:2px dashed var(--danger);outline-offset:-3px}
 .tblock table.dtab td .s{font-size:11px;line-height:1.15}.tblock table.dtab td .t{font-size:9.5px;margin:0;line-height:1.1}
 .tblock table.dtab.w td{font-size:12px;font-weight:700;height:36px}
 .tblock .dayname{font-size:120%;color:#1f6f5c}
+.dp .tfoot{gap:12px;font-size:10.5px}.dp .tfoot>div{white-space:nowrap}.dp.tp3 .tfoot,.dp.tp4 .tfoot,.dp.tp5 .tfoot{font-size:9.5px}.dp.tp1 .tfoot{margin-top:12px}
+.tblock.grow table.dtab td{height:var(--drh)!important}
+.tblock.grow.big table.dtab td .s{font-size:13px}.tblock.grow.big table.dtab td .t{font-size:11px}.tblock.grow.big table.dtab tbody th{font-size:13px}
 .wtab{max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
 .wtab table{border-collapse:collapse;width:100%;font-size:13px}
 .wtab th,.wtab td{border:1px solid var(--line);padding:6px 4px;height:auto;text-align:center}
@@ -713,13 +716,13 @@ function printPages(kind,ids,n){n=Math.min(5,Math.max(1,+n||1));const T=kind=="t
 function dayTableP(kind,di){const d=st.days[di],P=d.count;let h=`<thead><tr><th class="dh">${kind=="w"?"الرتبة":kind=="dc"?"الفصل":"المعلم"}</th>${Array.from({length:P},(_,p)=>`<th>${p+1}</th>`).join("")}</tr></thead><tbody>`;
   if(kind=="w"){const per=st.waitPer||3;for(let r=1;r<=per;r++){h+=`<tr><th>منتظر ${r}</th>`;for(let p=0;p<P;p++){const t=slotRanks(di+"-"+p)[r];h+=`<td>${t?esc(firstName(teacher(t)?.n||"")):""}</td>`}h+="</tr>"}}
   else if(kind=="dc"){for(const c of st.classes){const C=st.cells[c.id]||{};h+=`<tr><th>${esc(c.n)}</th>`;for(let p=0;p<P;p++){const x=C[di+"-"+p];if(!x){h+="<td></td>";continue}const s=subj(x.sid),t=teacher(cellTeacher(x,c.id));
-      h+=`<td style="background:${s?.c||"#fff"}"><div class="s">${esc(s?.n||"")}</div>${t?`<div class="t">${esc(firstName(t.n))}</div>`:""}</td>`}h+="</tr>"}}
+      h+=st.pNoSubj?`<td style="background:${s?.c||"#fff"}"><div class="s">${t?esc(t.n):""}</div></td>`:`<td style="background:${s?.c||"#fff"}"><div class="s">${esc(s?.n||"")}</div>${t?`<div class="t">${esc(firstName(t.n))}</div>`:""}</td>`}h+="</tr>"}}
   else{for(const t of st.teachers){const S=teacherSlots(t.id);h+=`<tr><th>${esc(t.n)}</th>`;for(let p=0;p<P;p++){const k=di+"-"+p,L=S[k],wr=waitRank(t.id,k);
-      if(L){const s=subj(L[0].x.sid);h+=`<td style="background:${s?.c||"#fff"}"><div class="s">${esc(shortCls(L[0].c))}</div><div class="t">${esc(shortSubj(s))}</div></td>`}else h+=wr?`<td class="wt"><div class="s">م${wr}</div></td>`:"<td></td>"}h+="</tr>"}}
+      if(L){const s=subj(L[0].x.sid);h+=`<td style="background:${s?.c||"#fff"}"><div class="s">${esc(shortCls(L[0].c))}</div>${st.pNoSubj?"":`<div class="t">${esc(shortSubj(s))}</div>`}</td>`}else h+=wr?`<td class="wt"><div class="s">م${wr}</div></td>`:"<td></td>"}h+="</tr>"}}
   return h+"</tbody>"}
 function dayPages(kind,days,n){n=Math.min(5,Math.max(1,+n||1));const pages=[];for(let i=0;i<days.length;i+=n)pages.push(days.slice(i,i+n));
   const title={w:"جدول الانتظار",dc:"الجدول اليومي للفصول",dt:"الجدول اليومي للمعلمين"}[kind];
-  const sig=(b,v)=>`<div><b>${b}</b> ${v?esc(v):""} <i>التوقيع: ............</i></div>`;
+  const sig=(b,v)=>`<div><b>${b}:</b> ${v?esc(v):""} — <i>التوقيع: ........</i></div>`;
   const blk=di=>`<div class="tblock"><div class="thead"><b>${esc(st.school||"")}</b>${locked()?"":`<em class="dm">مسودة</em>`}<span>${title} — <b class="dayname">${ALL_DAYS[di]}</b></span></div>
     <table class="tt dtab ${kind}">${dayTableP(kind,di)}</table><div class="tfoot">${sig("وكيل الشؤون التعليمية",st.deputy||"—")}${sig("مدير المدرسة",st.principal||"—")}</div></div>`;
   return pages.map(g=>`<div class="tpage tp${n} dp">${g.map(blk).join("")}</div>`).join("")}
@@ -737,12 +740,14 @@ function printChooser(kind){
     <div class="seg tpk">${[["cur",curName],["t","جداول كل المعلمين"],["c","جداول كل الفصول"],["w","جدول الانتظار"],["dc","الجدول اليومي للفصول"],["dt","الجدول اليومي للمعلمين"]].map(([k,l])=>`<button data-k="${k}" class="${k==kind?"on":""}">${l}</button>`).join("")}</div>
     <p class="note">مقاس الورق:</p><div class="seg tpn">${["A4","A3"].map(x=>`<button data-pp="${x}" class="${(st.paper||"A4")==x?"on":""}">${x}</button>`).join("")}</div>
     ${dk?`<p class="note">اليوم:</p><div class="seg tpk">${[["all","كامل الأسبوع"],...ad().map(i=>[String(i),ALL_DAYS[i]])].map(([v,l])=>`<button data-day="${v}" class="${String(day)==v?"on":""}">${l}</button>`).join("")}</div>`:""}
-    ${kind=="cur"?`${true?`<p class="note">ألوان الخلفية في الجداول:</p><div class="seg tpn"><button data-bg="1" class="${st.pNoBg?"":"on"}">ملوّنة</button><button data-bg="0" class="${st.pNoBg?"on":""}">بدون ألوان</button></div>`:""}<p class="note">${isGen?`يُطبع الجدول العام في ورقة ${st.paper||"A4"} أفقية واحدة مع التوقيعات، ويملأ الصفحة طولًا وعرضًا. اختر المقاس نفسه في نافذة الطباعة.`:"يُطبع الجدول المعروض حاليًا."}</p>`:`
+    ${kind!="w"?`<p class="note">ألوان الخلفية في الجداول:</p><div class="seg tpn"><button data-bg="1" class="${st.pNoBg?"":"on"}">ملوّنة</button><button data-bg="0" class="${st.pNoBg?"on":""}">بدون ألوان</button></div>`:""}
+    ${kind=="dc"||kind=="dt"?`<p class="note">محتوى الخانات:</p><div class="seg tpn"><button data-ns="0" class="${st.pNoSubj?"":"on"}">مع أسماء المواد</button><button data-ns="1" class="${st.pNoSubj?"on":""}">${kind=="dc"?"أسماء المعلمين فقط":"الفصول فقط"}</button></div>`:""}
+    ${kind=="cur"?`<p class="note">${isGen?`يُطبع الجدول العام في ورقة ${st.paper||"A4"} أفقية واحدة مع التوقيعات، ويملأ الصفحة طولًا وعرضًا. اختر المقاس نفسه في نافذة الطباعة.`:"يُطبع الجدول المعروض حاليًا."}</p>`:`
     <p class="note">ورق ${st.paper||"A4"} عمودي. عدد الجداول في كل ورقة:</p>
     <div class="seg tpn">${[1,2,3,4,5].map(i=>`<button data-n="${i}" class="${i==n?"on":""}">${i}</button>`).join("")}</div>
     <p class="note">عدد الأوراق: <b>${Math.ceil(cnt()/n)}</b> لـ ${cnt()} ${unit}.${n>=2&&kind=="t"?" تبقى أسماء المواد داخل الجداول، وتُحذف القائمة أسفل كل جدول.":""}${kind=="w"&&!Object.keys(st.wslots||{}).length?" <b style='color:var(--warn)'>لم يُوزّع الانتظار بعد.</b>":""}</p>`}
     <div class="actions"><button class="primary" id="tpGo">طباعة</button><button data-close>إلغاء</button></div>`};
-  const w=modal("",(e,w)=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.n){n=+b.dataset.n;draw(w);return}if(b.dataset.k){kind=b.dataset.k;draw(w);return}if(b.dataset.pp){st.paper=b.dataset.pp;save();draw(w);return}if(b.dataset.bg){st.pNoBg=b.dataset.bg=="0";save();draw(w);return}
+  const w=modal("",(e,w)=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.n){n=+b.dataset.n;draw(w);return}if(b.dataset.k){kind=b.dataset.k;draw(w);return}if(b.dataset.pp){st.paper=b.dataset.pp;save();draw(w);return}if(b.dataset.ns){st.pNoSubj=b.dataset.ns=="1";save();draw(w);return}if(b.dataset.bg){st.pNoBg=b.dataset.bg=="0";save();draw(w);return}
     if(b.dataset.day!=null){day=b.dataset.day;st.pDay=day;save();draw(w);return}
     if(b.id=="tpGo"){w.remove();if(kind=="cur"){printPortrait=false;fitPrint();window.print();return}
       if(!cnt()){toast(kind=="t"?"لا يوجد معلمون":kind=="c"?"لا توجد فصول":"لا توجد أيام");return}st.tPer=n;save();
@@ -772,7 +777,12 @@ function fitPrint(){const P=PAPER[st.paper=="A3"?"A3":"A4"],[PW,PH]=P.land;if(!p
     if(z>=1)sh.style.setProperty("width",PW+"px","important")}
   // جداول المعلمين في الورقة العمودية: تصغير كل جدول ليتسع في حصته من الورقة
   if(document.body.classList.contains("pall"))document.querySelectorAll("#allT .tpage").forEach(pg=>{const n=+(pg.className.match(/tp(\d)/)||[0,1])[1],avail=(P.port[1]*0.97-(n-1)*10)/n;
-    pg.querySelectorAll(".tblock").forEach(b=>{b.style.removeProperty("zoom");const h=b.scrollHeight;if(h>avail)b.style.zoom=(avail/h).toFixed(4)})});
+    pg.querySelectorAll(".tblock").forEach(b=>{b.style.removeProperty("zoom");b.classList.remove("grow","big");b.style.removeProperty("--drh");let h=b.scrollHeight;
+      // الجداول اليومية: تُوسَّع الصفوف لتملأ حصة الجدول من الورقة بدل ترك هامش سفلي كبير
+      const tb=pg.classList.contains("dp")&&b.querySelector("table.dtab");
+      if(tb&&h<avail){const rows=tb.querySelectorAll("tbody tr"),n0=rows.length;if(n0){const cur=rows[0].getBoundingClientRect().height;let rh=Math.min(160,cur+(avail-h)/n0);
+        b.classList.add("grow");b.classList.toggle("big",rh>=40);for(let i=0;i<5;i++){b.style.setProperty("--drh",rh.toFixed(1)+"px");h=b.scrollHeight;if(h<=avail)break;rh-=(h-avail)/n0+.5}}}
+      if(h>avail)b.style.zoom=(avail/h).toFixed(4)})});
   document.body.classList.remove("pm")}
 window.addEventListener("beforeprint",fitPrint);
 /* ملاءمة الجدول لعرض الشاشة على الجوال (لا يؤثر على الطباعة) */
