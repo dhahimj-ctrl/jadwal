@@ -30,6 +30,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font
   .tools{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:6px;scrollbar-width:thin}
   .ico{min-width:72px;flex:0 0 auto;padding:8px}
 }
+.bar h1 small{font-size:14px;color:var(--ink);font-family:var(--body);font-weight:700;margin-inline-start:6px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--panel);cursor:pointer;vertical-align:middle}.bar h1 small:empty{display:none}
+.tbcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.tbcard.on{border:2px solid var(--accent)}
+.tbcard .tbh{display:flex;align-items:center;gap:8px}.tbcard .tbh input{font-weight:800;flex:1}.tbcard .tbh em{font-style:normal;font-size:12px;font-weight:800;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:2px 10px;white-space:nowrap}
 .bar h1{font-family:var(--display);font-size:20px;margin:0;color:var(--accent);margin-inline-end:auto;align-self:center}
 .ico{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:78px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .ico svg{width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -457,7 +460,7 @@ body.pm.nosj table.gen td .sj{display:none}body.pm.nosj table.gen td .c{font-siz
 </form></div>
 <div class="wrap">
   <div class="bar">
-    <h1>الجدول المدرسي</h1>
+    <h1>الجدول المدرسي <small id="tblNm"></small></h1>
     <button class="ico" id="bCloud" data-st="off"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 9.2 4.5 4.5 0 0 0 7 18z"/></svg>السحابة<i class="cdot"></i></button>
     <button class="ico" id="bOut" hidden><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l-4-4 4-4"/><path d="M6 12h10"/></svg>خروج</button>
     <div class="tools">
@@ -474,6 +477,7 @@ body.pm.nosj table.gen td .sj{display:none}body.pm.nosj table.gen td .c{font-siz
     <button class="ico" id="bClear"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>تفريغ</span></button>
     <button class="ico" id="bSwap"><svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4"/><path d="M3 8h14"/><path d="M17 12l4 4-4 4"/><path d="M21 16H7"/></svg>تبديل</button>
     <button class="ico" id="bXl"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8l6 8M15 8l-6 8"/></svg>إكسل</button>
+    <button class="ico" id="bTbls"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="13" height="15" rx="2"/><path d="M8 21h11a2 2 0 0 0 2-2V8"/><path d="M6.5 8h6M6.5 12h6"/></svg>الجداول المحفوظة</button>
     <button class="ico" id="bArch"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg>الأرشيف</button>
     <button class="ico" id="bUndo" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>تراجع</button>
     <button class="ico" id="bApprove"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><span>اعتماد</span></button>
@@ -878,7 +882,7 @@ function markConflicts(){const M=conflictInfo();
   document.querySelectorAll("#tbl th[data-pk]").forEach(th=>{const L=M[th.dataset.pk];th.classList.toggle("cf",!!L);
     if(L)th.title=`تعارض — ${slotName(th.dataset.pk)}\n`+L.join("\n");else th.removeAttribute("title")})}
 function render(){
-  if(cleanWaits()+normalizeSplits())save();
+  if(cleanWaits()+normalizeSplits())save();try{showTblName()}catch(_){}
   if(!cls(st.cur))st.cur=st.classes[0]?.id||"";
   $("cSel").innerHTML=st.classes.map(c=>`<option value="${c.id}" ${c.id==st.cur?"selected":""}>${esc(c.n)}</option>`).join("")||"<option>لا توجد فصول</option>";
   $("vSchool").textContent=st.school||"اسم المدرسة";
@@ -1254,6 +1258,54 @@ $("bWait").onclick=()=>{
   draw();
 };
 
+/* ===== الجداول المحفوظة: كل جدول مستقل بمعلميه وإسناداته وإعداداته وتوزيعه ===== */
+// مفاتيح عامة لا تخص جدولًا بعينه (تبقى عند التنقل بين الجداول)
+const TBL_SKIP=["tables","tblId","archive","view","cur","curT","fit","paper","pNoBg","pNoSubj","xlFlip","tPer","pDay","pendMin","nid"];
+const TBL_MAX=10;
+const tblData=()=>{const o={};for(const k of Object.keys(st))if(!TBL_SKIP.includes(k))o[k]=st[k];return JSON.parse(JSON.stringify(o))};
+function tblEnsure(){if(!Array.isArray(st.tables)||!st.tables.length){st.tables=[{id:"tb"+Date.now().toString(36),name:"الجدول الأول",at:new Date().toISOString(),data:null}];st.tblId=st.tables[0].id}
+  if(!st.tables.some(t=>t.id==st.tblId))st.tblId=(st.tables.find(t=>!t.data)||st.tables[0]).id}
+const tblCur=()=>{tblEnsure();return st.tables.find(t=>t.id==st.tblId)};
+function normState(){st.assign=st.assign||[];st.extra=st.extra||[];st.waits=st.waits||{};st.waitR=st.waitR||{};st.wslots=st.wslots||{};st.waitPer=st.waitPer||3;st.cells=st.cells||{};ensureGrades();st.approved=st.approved||null;
+  st.rules=(st.rules||defaultRules()).filter(r=>RT[r.type]);Object.keys(RT).forEach(t=>{if(!st.rules.some(r=>r.type==t))st.rules.push(mkRule(t,uid("r")))});st.classes.forEach(c=>st.cells[c.id]=st.cells[c.id]||{})}
+// فتح جدول محفوظ: يُحفظ الجدول الحالي في مكانه ثم تُحمّل بيانات الجدول المختار
+function tblOpen(id){const cur=tblCur(),to=st.tables.find(t=>t.id==id);if(!to||to===cur)return;
+  cur.data=tblData();cur.at=new Date().toISOString();
+  for(const k of Object.keys(st))if(!TBL_SKIP.includes(k))delete st[k];
+  Object.assign(st,JSON.parse(JSON.stringify(to.data||{})));to.data=null;st.tblId=id;normState();
+  st.cur=st.classes[0]?.id||"";st.curT=st.teachers[0]?.id||"";
+  UNDO.length=0;updUndo();if(typeof swapMode!="undefined"&&swapMode)$("swapOff")?.click();save();render()}
+function tblCreate(name,full){tblEnsure();const d=tblData();
+  if(!full){d.cells={};(d.classes||[]).forEach(c=>d.cells[c.id]={});d.extra=[];d.wslots={};d.approved=null}
+  const t={id:uid("tb"),name,at:new Date().toISOString(),data:d};st.tables.push(t);tblOpen(t.id);return t}
+function tblStats(d){let placed=0;for(const c of d.classes||[])placed+=Object.keys(d.cells?.[c.id]||{}).length;return{t:(d.teachers||[]).length,c:(d.classes||[]).length,a:(d.assign||[]).length,p:placed,ok:!!d.approved}}
+function showTblName(){const el=$("tblNm");if(!el)return;const t=Array.isArray(st.tables)&&st.tables.find(x=>x.id==st.tblId);el.textContent=t?t.name:"";el.title="الجداول المحفوظة";el.onclick=()=>$("bTbls").click()}
+$("bTbls").onclick=()=>{tblEnsure();let full=false;
+  const w=modal("",(e,w)=>{const t=e.target,id=t.closest("[data-tb]")?.dataset.tb,tb=st.tables.find(x=>x.id==id);
+    if(t.dataset.full!=null){full=t.dataset.full=="1";draw();return}
+    if(t.id=="tbNew"){const name=cleanName($("tbName").value);if(!name){toast("اكتب اسمًا للجدول الجديد");$("tbName").focus();return}
+      if(st.tables.some(x=>norm(x.name)==norm(name))){toast("يوجد جدول بهذا الاسم");return}
+      if(st.tables.length>=TBL_MAX){toast(`الحد الأقصى ${TBL_MAX} جداول. احذف جدولًا لا تحتاجه`);return}
+      tblCreate(name,full);w.remove();toast(`أُنشئ «${name}» وهو الجدول المفتوح الآن`);return}
+    if(t.dataset.open!=null){tblOpen(id);w.remove();toast(`فُتح «${tb.name}». التعديلات الآن تخص هذا الجدول فقط`);return}
+    if(t.dataset.del!=null){arm(t,"تأكيد الحذف؟",()=>{st.tables=st.tables.filter(x=>x!==tb);save();draw();toast(`حُذف «${tb.name}»`)});return}});
+  const box=w.querySelector(".box");
+  function draw(){const cur=tblCur();
+    box.innerHTML=`<h3>الجداول المحفوظة</h3>
+      <p class="note">كل جدول مستقل بمعلميه وإسناداته وشروطه وفصوله وموادّه وتوزيع حصصه. التعديل في الجدول المفتوح لا يؤثر على الجداول الأخرى.</p>
+      ${st.tables.map(tb=>{const on=tb.id==cur.id,s=tblStats(on?st:tb.data||{});return `<div class="tbcard ${on?"on":""}" data-tb="${tb.id}">
+        <div class="tbh"><input data-ren value="${esc(tb.name)}" aria-label="اسم الجدول">${on?"<em>مفتوح الآن</em>":""}</div>
+        <div class="arstat"><span>المعلمون: ${s.t}</span><span>الفصول: ${s.c}</span><span>الإسنادات: ${s.a}</span><span>حصص موزعة: ${s.p}</span><span class="${s.ok?"ok":""}">${s.ok?"✔ معتمد":"مسودة"}</span></div>
+        ${on?"":`<div class="ardate">آخر حفظ: ${fmtDate(tb.at)}</div><div class="actions"><button class="primary" data-open>فتح هذا الجدول</button><button class="del" data-del>حذف</button></div>`}</div>`}).join("")}
+      <p class="sub">جدول جديد</p>
+      <p class="note">يُنشأ من الجدول المفتوح الآن بنفس المعلمين والإسنادات والإعدادات، ثم يصبح مستقلًا عنه.</p>
+      <div class="seg tpk"><button data-full="0" class="${full?"":"on"}">بدون توزيع الحصص</button><button data-full="1" class="${full?"on":""}">مع توزيع الحصص الحالي</button></div>
+      <div class="arrow"><input id="tbName" placeholder="اسم الجدول، مثال: الفصل الدراسي الثاني"><button class="primary" id="tbNew">إنشاء وفتح</button></div>
+      <div class="actions"><button data-close>إغلاق</button></div>`}
+  box.addEventListener("change",e=>{if(e.target.dataset.ren==null)return;const tb=st.tables.find(x=>x.id==e.target.closest("[data-tb]").dataset.tb),v=cleanName(e.target.value);
+    if(v&&!st.tables.some(x=>x!==tb&&norm(x.name)==norm(v))){tb.name=v;save();showTblName();toast("أُعيدت تسمية الجدول")}else{e.target.value=tb.name;if(v)toast("يوجد جدول بهذا الاسم")}});
+  draw()};
+
 /* ===== الأرشيف: حتى خمس نسخ مسماة ومؤرخة من الجداول ===== */
 const ARCH_MAX=5;
 function archStats(d){let placed=0;for(const c of st.classes)placed+=Object.keys(d.cells?.[c.id]||{}).length;
@@ -1286,9 +1338,9 @@ $("bArch").onclick=()=>{
   st.archive=st.archive||[];
   const w=modal("",(e,w)=>{const t=e.target,id=t.closest("[data-aid]")?.dataset.aid,a=st.archive.find(x=>x.id==id);
     if(t.id=="arSave"||t.dataset.rep!=null){const name=cleanName($("arName").value)||`نسخة ${new Date().toLocaleDateString("ar-SA")}`;
-      if(t.dataset.rep!=null){arm(t,"تأكيد الاستبدال؟",()=>{Object.assign(a,{name,at:new Date().toISOString(),data:curData()});save();draw();toast(`حُفظت النسخة الحالية مكان «${a.name}»`)});return}
+      if(t.dataset.rep!=null){arm(t,"تأكيد الاستبدال؟",()=>{Object.assign(a,{name,tn:tblCur().name,at:new Date().toISOString(),data:curData()});save();draw();toast(`حُفظت النسخة الحالية مكان «${a.name}»`)});return}
       if(st.archive.length>=ARCH_MAX){toast(`الأرشيف ممتلئ (${ARCH_MAX} نسخ). استبدل نسخة أو احذف واحدة`);return}
-      st.archive.push({id:uid("ar"),name,at:new Date().toISOString(),data:curData()});save();draw();toast(`حُفظت «${name}» في الأرشيف`);return}
+      st.archive.push({id:uid("ar"),name,tn:tblCur().name,at:new Date().toISOString(),data:curData()});save();draw();toast(`حُفظت «${name}» في الأرشيف`);return}
     if(t.dataset.view!=null){archPreview(a);return}
     if(t.dataset.restore!=null)arm(t,"تأكيد الاستعادة؟",()=>{snap(`استعادة «${a.name}»`);const d=JSON.parse(JSON.stringify(a.data));
       ARCH_KEYS.forEach(k=>{if(d[k]!==undefined&&d[k]!==null)st[k]=d[k]});st.approved=d.approved||null;st.wslots=d.wslots||{};st.classes.forEach(c=>st.cells[c.id]=st.cells[c.id]||{});
@@ -1296,8 +1348,8 @@ $("bArch").onclick=()=>{
     if(t.dataset.delA!=null)arm(t,"تأكيد الحذف؟",()=>{st.archive=st.archive.filter(x=>x!==a);save();draw();toast("حُذفت النسخة من الأرشيف")});
   });
   const box=w.querySelector(".box");
-  function card(title,d,extra,at){const s=archStats(d);return `<div class="arcard"${extra}><div class="arhead">${title}</div>
-    ${at?`<div class="ardate">${fmtDate(at)}</div>`:""}
+  function card(title,d,extra,at,tn){const s=archStats(d);return `<div class="arcard"${extra}><div class="arhead">${title}</div>
+    ${at?`<div class="ardate">${fmtDate(at)}${tn?` — من جدول: <b>${esc(tn)}</b>`:""}</div>`:""}
     <div class="arstat"><span>مدرجة: ${s.placed}</span><span>غير مدرجة: ${s.miss}</span><span>انتظار: ${s.waits}</span><span class="${s.ok?"ok":""}">${s.ok?"✔ معتمد":"مسودة"}</span></div>`}
   function draw(){const full=st.archive.length>=ARCH_MAX;
     box.innerHTML=`<h3>الأرشيف</h3>
@@ -1306,7 +1358,7 @@ $("bArch").onclick=()=>{
        <div class="arrow"><input id="arName" placeholder="اسم النسخة، مثال: قبل تعديل جدول الخميس"><button class="primary" id="arSave" ${full?"disabled":""}>حفظ في الأرشيف</button></div>
        ${full?`<p class="note warn">الأرشيف ممتلئ. اضغط «حفظ الحالية مكانها» على إحدى النسخ أدناه، أو احذف نسخة.</p>`:""}</div>
      <p class="sub">النسخ المؤرشفة (${st.archive.length} من ${ARCH_MAX})</p>
-     ${st.archive.map((a,i)=>card(`${i+1}. <input class="arren" data-ren value="${esc(a.name)}" aria-label="اسم النسخة">`,a.data,` data-aid="${a.id}"`,a.at)+`
+     ${st.archive.map((a,i)=>card(`${i+1}. <input class="arren" data-ren value="${esc(a.name)}" aria-label="اسم النسخة">`,a.data,` data-aid="${a.id}"`,a.at,a.tn)+`
        <div class="actions"><button data-view>عرض الجدول العام وجداول المعلمين</button></div><div class="actions"><button class="primary" data-restore>استعادة</button><button data-rep>حفظ الحالية مكانها</button><button class="del" data-del-a>حذف</button></div></div>`).join("")||"<p class='note'>لا توجد نسخ مؤرشفة بعد.</p>"}
      <div class="actions"><button data-close>إغلاق</button></div>`;
   }
@@ -1619,7 +1671,7 @@ function applyRemote(d){let remote;try{remote=JSON.parse(d.state)}catch(_){retur
   if(d.updatedBy&&d.updatedBy!==CLOUD.user?.email)toast(`حُدّث الجدول من ${uName(d.updatedByName||d.updatedBy)}`)}
 function cloudQueue(){if(CLOUD.applying||!CLOUD.user||!CLOUD.sid||!CLOUD.live)return;cloudSet("pending");clearTimeout(CLOUD.pushT);CLOUD.pushT=setTimeout(cloudPush,1200)}
 async function cloudPush(){if(!CLOUD.user||!CLOUD.sid||!CLOUD.live)return;const json=JSON.stringify(stripLocal());
-  if(json.length>950000){cloudSet("error","حجم البيانات أكبر من حد السحابة. احذف نسخًا من الأرشيف");toast(CLOUD.err);return}
+  if(json.length>950000){cloudSet("error","حجم البيانات أكبر من حد السحابة. احذف نسخًا من الأرشيف أو جداول محفوظة لا تحتاجها");toast(CLOUD.err);return}
   const rev=Date.now()+"-"+Math.random().toString(36).slice(2,7);CLOUD.rev=rev;
   try{await cloudDoc(CLOUD.sid).update({state:json,rev,name:st.school||"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:CLOUD.user.email||"",updatedByName:CLOUD.user.displayName||uName(CLOUD.user.email)});cloudSet("synced")}
   catch(e){cloudSet("error",e.code=="permission-denied"?"لا تملك صلاحية التعديل":e.message);toast("لم يُحفظ في السحابة: "+CLOUD.err)}}
